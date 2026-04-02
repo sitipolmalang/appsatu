@@ -1,0 +1,8 @@
+<Layouts.app flash={@flash}>
+  <.header>
+    Edit Category {@category.id}
+    <:subtitle>Use this form to manage category records in your database.</:subtitle>
+  </.header>
+
+  <.category_form changeset={@changeset} action={~p"/categories/#{@category}"} return_to={~p"/categories"} />
+</Layouts.app>

@@ -1,0 +1,27 @@
+<Layouts.app flash={@flash}>
+  <.header>
+    Listing Posts
+    <:actions>
+      <.button href={~p"/posts/new"}>
+        <.icon name="hero-plus" /> New Post
+      </.button>
+    </:actions>
+  </.header>
+
+  <.table id="posts" rows={@posts} row_click={&JS.navigate(~p"/posts/#{&1}")}>
+    <:col :let={post} label="Title">{post.title}</:col>
+    <:col :let={post} label="Body">{post.body}</:col>
+    <:col :let={post} label="Published">{post.published}</:col>
+    <:action :let={post}>
+      <div class="sr-only">
+        <.link navigate={~p"/posts/#{post}"}>Show</.link>
+      </div>
+      <.link navigate={~p"/posts/#{post}/edit"}>Edit</.link>
+    </:action>
+    <:action :let={post}>
+      <.link href={~p"/posts/#{post}"} method="delete" data-confirm="Are you sure?">
+        Delete
+      </.link>
+    </:action>
+  </.table>
+</Layouts.app>

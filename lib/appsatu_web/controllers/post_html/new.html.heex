@@ -1,0 +1,8 @@
+<Layouts.app flash={@flash}>
+  <.header>
+    New Post
+    <:subtitle>Use this form to manage post records in your database.</:subtitle>
+  </.header>
+
+  <.post_form changeset={@changeset} action={~p"/posts"} return_to={~p"/posts"} />
+</Layouts.app>
