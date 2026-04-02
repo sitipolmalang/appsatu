@@ -15,7 +15,7 @@
     <:col :let={post} label="Category">
       <%!-- ketika kategori tidak ada, maka tampilan kosong --%>
       {post.category && post.category.name}
-    </:col>
+    </:col> 
     <:action :let={post}>
       <div class="sr-only">
         <.link navigate={~p"/posts/#{post}"}>Show</.link>

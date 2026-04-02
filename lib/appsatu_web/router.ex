@@ -20,6 +20,7 @@ defmodule AppsatuWeb.Router do
     get "/", PageController, :home
     resources "/posts", PostController
     resources "/categories", CategoryController
+    resources "/tags", TagController
   end
 
   # Other scopes may use custom stacks.
