@@ -16,3 +16,15 @@ Ready to run in production? Please [check our deployment guides](https://hexdocs
 * Docs: https://hexdocs.pm/phoenix
 * Forum: https://elixirforum.com/c/phoenix-forum
 * Source: https://github.com/phoenixframework/phoenix
+
+
+## Controller example
+GET     /                                      AppsatuWeb.PageController :home
+GET     /posts                                 AppsatuWeb.PostController :index
+GET     /posts/:id/edit                        AppsatuWeb.PostController :edit
+GET     /posts/new                             AppsatuWeb.PostController :new
+GET     /posts/:id                             AppsatuWeb.PostController :show
+POST    /posts                                 AppsatuWeb.PostController :create
+PATCH   /posts/:id                             AppsatuWeb.PostController :update
+PUT     /posts/:id                             AppsatuWeb.PostController :update
+DELETE  /posts/:id                             AppsatuWeb.PostController :delete

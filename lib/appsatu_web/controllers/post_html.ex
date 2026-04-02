@@ -12,6 +12,7 @@ defmodule AppsatuWeb.PostHTML do
   attr :changeset, Ecto.Changeset, required: true
   attr :action, :string, required: true
   attr :return_to, :string, default: nil
+  attr :categories, :list, default: []
 
   def post_form(assigns)
 end
