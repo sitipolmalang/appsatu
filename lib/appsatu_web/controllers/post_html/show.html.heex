@@ -15,6 +15,13 @@
   <.list>
     <:item title="Title">{@post.title}</:item>
     <:item title="Body">{@post.body}</:item>
+    <:item title="Category">
+      <%= if @post.category do %>
+        {@post.category.name}
+      <% else %>
+        No category
+      <% end %>      
+    </:item>
     <:item title="Published">{@post.published}</:item>
   </.list>
 </Layouts.app>

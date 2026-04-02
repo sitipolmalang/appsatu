@@ -7,6 +7,8 @@ defmodule Appsatu.Blog.Post do
     field :body, :string
     field :published, :boolean, default: false
 
+    belongs_to :category, Appsatu.Blog.Category
+
     timestamps(type: :utc_datetime)
   end
 
@@ -15,5 +17,7 @@ defmodule Appsatu.Blog.Post do
     post
     |> cast(attrs, [:title, :body, :published])
     |> validate_required([:title, :body, :published])
+    |> foreign_key_constraint(:category_id)
+    |> cast(attrs, [:title, :body, :published, :category_id])
   end
 end

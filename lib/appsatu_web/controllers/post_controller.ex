@@ -6,12 +6,16 @@ defmodule AppsatuWeb.PostController do
 
   def index(conn, _params) do
     posts = Blog.list_posts()
+
     render(conn, :index, posts: posts)
   end
 
   def new(conn, _params) do
     changeset = Blog.change_post(%Post{})
-    render(conn, :new, changeset: changeset)
+
+    render(conn, :new,
+      changeset: changeset,
+      categories: Blog.list_categories())
   end
 
   def create(conn, %{"post" => post_params}) do
@@ -22,7 +26,9 @@ defmodule AppsatuWeb.PostController do
         |> redirect(to: ~p"/posts/#{post}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :new, changeset: changeset)
+        render(conn, :new,
+          changeset: changeset,
+          categories: Blog.list_categories())
     end
   end
 
@@ -34,7 +40,8 @@ defmodule AppsatuWeb.PostController do
   def edit(conn, %{"id" => id}) do
     post = Blog.get_post!(id)
     changeset = Blog.change_post(post)
-    render(conn, :edit, post: post, changeset: changeset)
+
+    render(conn, :edit, post: post, changeset: changeset, categories: Blog.list_categories())
   end
 
   def update(conn, %{"id" => id, "post" => post_params}) do
@@ -47,7 +54,7 @@ defmodule AppsatuWeb.PostController do
         |> redirect(to: ~p"/posts/#{post}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :edit, post: post, changeset: changeset)
+        render(conn, :edit, post: post, changeset: changeset, categories: Blog.list_categories())
     end
   end
 

@@ -1,6 +1,14 @@
 <.form :let={f} for={@changeset} action={@action}>
   <.input field={f[:title]} type="text" label="Title" />
   <.input field={f[:body]} type="textarea" label="Body" />
+
+  <.input
+      field={f[:category_id]}
+      type="select"
+      label="Category"
+      options={Enum.map(@categories || [], &{&1.name, &1.id})}
+    />
+    
   <.input field={f[:published]} type="checkbox" label="Published" />
   <footer>
     <.button variant="primary">Save Post</.button>

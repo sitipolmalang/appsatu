@@ -19,6 +19,7 @@ defmodule Appsatu.Blog do
   """
   def list_posts do
     Repo.all(Post)
+    |> Repo.preload(:category)
   end
 
   @doc """
@@ -35,7 +36,11 @@ defmodule Appsatu.Blog do
       ** (Ecto.NoResultsError)
 
   """
-  def get_post!(id), do: Repo.get!(Post, id)
+  def get_post!(id) do
+    Repo.get!(Post, id)
+    |> Repo.preload(:category)
+  end
+
 
   @doc """
   Creates a post.

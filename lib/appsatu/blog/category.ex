@@ -5,6 +5,8 @@ defmodule Appsatu.Blog.Category do
   schema "categories" do
     field :name, :string
 
+    has_many :posts, Appsatu.Blog.Post
+
     timestamps(type: :utc_datetime)
   end
 

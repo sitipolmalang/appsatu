@@ -12,6 +12,10 @@
     <:col :let={post} label="Title">{post.title}</:col>
     <:col :let={post} label="Body">{post.body}</:col>
     <:col :let={post} label="Published">{post.published}</:col>
+    <:col :let={post} label="Category">
+      <%!-- ketika kategori tidak ada, maka tampilan kosong --%>
+      {post.category && post.category.name}
+    </:col>
     <:action :let={post}>
       <div class="sr-only">
         <.link navigate={~p"/posts/#{post}"}>Show</.link>
