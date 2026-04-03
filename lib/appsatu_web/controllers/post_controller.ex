@@ -15,7 +15,8 @@ defmodule AppsatuWeb.PostController do
 
     render(conn, :new,
       changeset: changeset,
-      categories: Blog.list_categories())
+      categories: Blog.list_categories(),
+      tags: Blog.list_tags())
   end
 
   def create(conn, %{"post" => post_params}) do
@@ -28,7 +29,8 @@ defmodule AppsatuWeb.PostController do
       {:error, %Ecto.Changeset{} = changeset} ->
         render(conn, :new,
           changeset: changeset,
-          categories: Blog.list_categories())
+          categories: Blog.list_categories(),
+          tags: Blog.list_tags())
     end
   end
 
@@ -40,12 +42,14 @@ defmodule AppsatuWeb.PostController do
   def edit(conn, %{"id" => id}) do
     post = Blog.get_post!(id)
     changeset = Blog.change_post(post)
+    changeset = Ecto.Changeset.put_change(changeset, :tag_ids, Enum.map(post.tags, & &1.id))
 
-    render(conn, :edit, post: post, changeset: changeset, categories: Blog.list_categories())
+    render(conn, :edit, post: post, changeset: changeset, categories: Blog.list_categories(), tags: Blog.list_tags())
   end
 
   def update(conn, %{"id" => id, "post" => post_params}) do
     post = Blog.get_post!(id)
+    post_params = Map.put_new(post_params, "tag_ids", [])
 
     case Blog.update_post(post, post_params) do
       {:ok, post} ->
@@ -54,7 +58,7 @@ defmodule AppsatuWeb.PostController do
         |> redirect(to: ~p"/posts/#{post}")
 
       {:error, %Ecto.Changeset{} = changeset} ->
-        render(conn, :edit, post: post, changeset: changeset, categories: Blog.list_categories())
+        render(conn, :edit, post: post, changeset: changeset, categories: Blog.list_categories(), tags: Blog.list_tags())
     end
   end
 

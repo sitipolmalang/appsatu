@@ -5,6 +5,8 @@ defmodule Appsatu.Blog.Tag do
   schema "tags" do
     field :name, :string
 
+    many_to_many :posts, Appsatu.Blog.Post, join_through: "posts_tags"
+
     timestamps(type: :utc_datetime)
   end
 

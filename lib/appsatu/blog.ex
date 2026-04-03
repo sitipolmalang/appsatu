@@ -19,7 +19,7 @@ defmodule Appsatu.Blog do
   """
   def list_posts do
     Repo.all(Post)
-    |> Repo.preload(:category)
+    |> Repo.preload([:category, :tags])
   end
 
   @doc """
@@ -38,7 +38,7 @@ defmodule Appsatu.Blog do
   """
   def get_post!(id) do
     Repo.get!(Post, id)
-    |> Repo.preload(:category)
+    |> Repo.preload([:category, :tags])
   end
 
 
@@ -232,7 +232,10 @@ defmodule Appsatu.Blog do
       ** (Ecto.NoResultsError)
 
   """
-  def get_tag!(id), do: Repo.get!(Tag, id)
+  def get_tag!(id) do
+    Repo.get!(Tag, id)
+    |> Repo.preload(:posts)
+  end
 
   @doc """
   Creates a tag.

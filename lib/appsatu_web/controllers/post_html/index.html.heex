@@ -15,7 +15,17 @@
     <:col :let={post} label="Category">
       <%!-- ketika kategori tidak ada, maka tampilan kosong --%>
       {post.category && post.category.name}
-    </:col> 
+    </:col>
+    <:col :let={post} label="Tags">
+      <%= if post.tags && length(post.tags) > 0 do %>
+        <%= Enum.map(post.tags, & &1.name) |> Enum.join(", ") %>
+      <% else %>
+        <%!-- kosong --%>
+      <% end %>
+    </:col>
+
+    
+    <%!-- Action buttons --%>
     <:action :let={post}>
       <div class="sr-only">
         <.link navigate={~p"/posts/#{post}"}>Show</.link>

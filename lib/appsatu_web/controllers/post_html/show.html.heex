@@ -22,6 +22,15 @@
         No category
       <% end %>      
     </:item>
+
+    <:item title="Tags">
+      <%= if @post.tags && length(@post.tags) > 0 do %>
+        <%= Enum.map(@post.tags, & &1.name) |> Enum.join(", ") %>
+      <% else %>
+        No tags
+      <% end %>
+    </:item>
+
     <:item title="Published">{@post.published}</:item>
   </.list>
 </Layouts.app>
