@@ -18,7 +18,10 @@ defmodule AppsatuWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    resources "/posts", PostController
+    live "/posts", PostLive, :index
+    live "/posts/new", PostLive, :new
+    live "/posts/:id/edit", PostLive, :edit
+    live "/posts/:id", PostLive, :show
     resources "/categories", CategoryController
     resources "/tags", TagController
   end

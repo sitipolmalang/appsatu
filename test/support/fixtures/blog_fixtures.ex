@@ -8,10 +8,13 @@ defmodule Appsatu.BlogFixtures do
   Generate a post.
   """
   def post_fixture(attrs \\ %{}) do
+    category = category_fixture()
+
     {:ok, post} =
       attrs
       |> Enum.into(%{
         body: "some body",
+        category_id: category.id,
         published: true,
         title: "some title"
       })

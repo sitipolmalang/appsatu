@@ -16,4 +16,18 @@ defmodule AppsatuWeb.PostHTML do
   attr :tags, :list, default: []
 
   def post_form(assigns)
+
+  def image_label(%{file_name: file_name}) when is_binary(file_name), do: file_name
+  def image_label(file_name) when is_binary(file_name), do: file_name
+  def image_label(_), do: "uploaded-file"
+
+  def image_url(image) do
+    case image_label(image.filename) do
+      "uploaded-file" ->
+        image.url
+
+      file_name ->
+        "/uploads/posts/#{image.post_id}/#{image.role}/#{file_name}"
+    end
+  end
 end

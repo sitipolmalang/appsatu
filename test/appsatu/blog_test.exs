@@ -8,25 +8,29 @@ defmodule Appsatu.BlogTest do
 
     import Appsatu.BlogFixtures
 
-    @invalid_attrs %{title: nil, body: nil, published: nil}
+    @invalid_attrs %{title: nil, body: nil, published: nil, category_id: nil}
 
     test "list_posts/0 returns all posts" do
       post = post_fixture()
-      assert Blog.list_posts() == [post]
+      [listed_post] = Blog.list_posts()
+      assert listed_post.id == post.id
     end
 
     test "get_post!/1 returns the post with given id" do
       post = post_fixture()
-      assert Blog.get_post!(post.id) == post
+      fetched_post = Blog.get_post!(post.id)
+      assert fetched_post.id == post.id
     end
 
     test "create_post/1 with valid data creates a post" do
-      valid_attrs = %{title: "some title", body: "some body", published: true}
+      category = category_fixture()
+      valid_attrs = %{title: "some title", body: "some body", published: true, category_id: category.id}
 
       assert {:ok, %Post{} = post} = Blog.create_post(valid_attrs)
       assert post.title == "some title"
       assert post.body == "some body"
       assert post.published == true
+      assert post.category_id == category.id
     end
 
     test "create_post/1 with invalid data returns error changeset" do
@@ -35,12 +39,14 @@ defmodule Appsatu.BlogTest do
 
     test "update_post/2 with valid data updates the post" do
       post = post_fixture()
-      update_attrs = %{title: "some updated title", body: "some updated body", published: false}
+      category = category_fixture()
+      update_attrs = %{title: "some updated title", body: "some updated body", published: false, category_id: category.id}
 
       assert {:ok, %Post{} = post} = Blog.update_post(post, update_attrs)
       assert post.title == "some updated title"
       assert post.body == "some updated body"
       assert post.published == false
+      assert post.category_id == category.id
     end
 
     test "update_post/2 with invalid data returns error changeset" do

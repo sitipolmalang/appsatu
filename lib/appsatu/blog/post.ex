@@ -16,6 +16,8 @@ defmodule Appsatu.Blog.Post do
       on_replace: :delete
     )
 
+    has_many(:images, Appsatu.Blog.PostImage)
+
     timestamps(type: :utc_datetime)
   end
 

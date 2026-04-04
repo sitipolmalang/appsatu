@@ -1,0 +1,204 @@
+<Layouts.app flash={@flash} current_scope={@current_scope}>
+  <%= case @live_action do %>
+    <% :index -> %>
+      <section class="space-y-6">
+        <div class="rounded-3xl bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500 p-[1px] shadow-xl">
+          <div class="rounded-3xl bg-base-100 p-6 sm:p-8">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h1 class="text-3xl font-bold tracking-tight">Posts Dashboard</h1>
+                <p class="mt-1 text-base-content/60">Kelola konten dengan upload gambar real-time.</p>
+              </div>
+
+              <.button navigate={~p"/posts/new"} class="btn btn-primary rounded-full px-6">
+                <.icon name="hero-plus" class="size-5" /> New Post
+              </.button>
+            </div>
+          </div>
+        </div>
+
+        <div class="overflow-hidden rounded-3xl border border-base-300 bg-base-100 shadow-sm">
+          <.table
+            id="posts"
+            rows={@streams.posts}
+            row_click={fn {_id, post} -> JS.navigate(~p"/posts/#{post.id}") end}
+          >
+            <:col :let={{_id, post}} label="Post">
+              <div class="flex items-center gap-3">
+                <div class="avatar">
+                  <div class="h-14 w-14 rounded-xl ring-1 ring-base-300">
+                    <%= if image = Enum.find(post.images || [], &(&1.role == "cover")) do %>
+                      <img src={image_url(image)} alt={post.title} class="object-cover" />
+                    <% else %>
+                      <div class="flex h-full w-full items-center justify-center bg-base-200 text-base-content/40">
+                        <.icon name="hero-photo" class="size-6" />
+                      </div>
+                    <% end %>
+                  </div>
+                </div>
+
+                <div>
+                  <p class="line-clamp-1 text-sm font-bold tracking-tight">{post.title}</p>
+                  <p class="mt-0.5 line-clamp-2 text-xs leading-relaxed text-base-content/60">{post.body}</p>
+                </div>
+              </div>
+            </:col>
+
+            <:col :let={{_id, post}} label="Meta">
+              <div class="space-y-2 text-sm">
+                <div>
+                  <span
+                    :if={post.category}
+                    class="badge badge-primary badge-soft rounded-full text-[10px] font-semibold uppercase tracking-wide"
+                  >
+                    {post.category.name}
+                  </span>
+                  <span :if={!post.category} class="text-xs text-base-content/50">No category</span>
+                </div>
+
+                <div class="flex flex-wrap gap-1.5">
+                  <span :if={post.tags == []} class="text-xs text-base-content/50">No tags</span>
+                  <span
+                    :for={tag <- post.tags}
+                    class="badge badge-info badge-soft rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                  >
+                    {tag.name}
+                  </span>
+                </div>
+              </div>
+            </:col>
+
+            <:col :let={{_id, post}} label="Status">
+              <span class={[
+                "badge rounded-full",
+                post.published && "badge-success badge-soft",
+                !post.published && "badge-warning badge-soft"
+              ]}>
+                {if post.published, do: "Published", else: "Draft"}
+              </span>
+            </:col>
+
+            <:action :let={{_id, post}}>
+              <.link patch={~p"/posts/#{post.id}/edit"} class="link link-primary">Edit</.link>
+            </:action>
+
+            <:action :let={{_id, post}}>
+              <button
+                type="button"
+                phx-click="delete"
+                phx-value-id={post.id}
+                data-confirm="Yakin hapus post ini?"
+                class="link link-error"
+              >
+                Delete
+              </button>
+            </:action>
+          </.table>
+        </div>
+      </section>
+
+    <% :new -> %>
+      <Components.post_form_section
+        title="Create Post"
+        subtitle="Buat post dengan cover, thumbnail, gallery, dan attachment."
+        form={@form}
+        categories={@categories}
+        tags={@tags}
+        uploads={@uploads}
+        action={:new}
+        preview_image={@preview_image}
+        submit_disabled={submit_disabled?(@uploads)}
+        selected_tag_ids={@selected_tag_ids}
+        selected_tag_count={@selected_tag_count}
+        body_length={@body_length}
+      />
+
+    <% :edit -> %>
+      <Components.post_form_section
+        title={"Edit Post ##{@post.id}"}
+        subtitle="Perbarui konten, thumbnail, gallery, dan attachment dengan upload progress."
+        form={@form}
+        categories={@categories}
+        tags={@tags}
+        uploads={@uploads}
+        action={:edit}
+        post={@post}
+        preview_image={@preview_image}
+        submit_disabled={submit_disabled?(@uploads)}
+        selected_tag_ids={@selected_tag_ids}
+        selected_tag_count={@selected_tag_count}
+        body_length={@body_length}
+      />
+
+    <% :show -> %>
+      <section class="space-y-6">
+        <div class="flex items-center justify-between">
+          <.button navigate={~p"/posts"} class="btn btn-ghost rounded-full">
+            <.icon name="hero-arrow-left" class="size-4" /> Back
+          </.button>
+          <.button patch={~p"/posts/#{@post.id}/edit"} class="btn btn-primary rounded-full">
+            <.icon name="hero-pencil-square" class="size-4" /> Edit
+          </.button>
+        </div>
+
+        <article class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm sm:p-8">
+          <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{@post.title}</h1>
+
+          <div class="mt-4 rounded-2xl bg-base-200/40 p-4 sm:p-5">
+            <p class="whitespace-pre-line text-sm leading-relaxed text-base-content/80 sm:text-base">
+              {@post.body}
+            </p>
+          </div>
+
+          <div class="mt-6 flex flex-wrap gap-2">
+            <span
+              :if={@post.category}
+              class="badge badge-primary badge-soft rounded-full px-3 py-0.5 text-xs font-semibold uppercase tracking-wide"
+            >
+              {@post.category.name}
+            </span>
+            <span :if={!@post.category} class="badge badge-ghost rounded-full px-3 py-0.5 text-xs">
+              No category
+            </span>
+            <span
+              :for={tag <- @post.tags}
+              class="badge badge-info badge-soft rounded-full px-3 py-0.5 text-xs font-semibold uppercase tracking-wide"
+            >
+              {tag.name}
+            </span>
+          </div>
+
+          <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <div :for={image <- @post.images} class="overflow-hidden rounded-2xl border border-base-300">
+              <button
+                type="button"
+                phx-click="open-image-preview"
+                phx-value-url={image_url(image)}
+                phx-value-filename={filename_label(image.filename)}
+                phx-value-role={image.role}
+                class="group block w-full cursor-pointer"
+              >
+                <div class="relative">
+                  <img
+                    src={image_url(image)}
+                    alt={filename_label(image.filename)}
+                    class="h-28 w-full object-cover transition duration-200 group-hover:scale-[1.02] group-hover:opacity-90"
+                  />
+                  <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/25">
+                    <span class="rounded-full border border-white/50 bg-black/35 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white opacity-0 transition group-hover:opacity-100">
+                      preview
+                    </span>
+                  </div>
+                </div>
+              </button>
+              <div class="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+                {image.role}
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+  <% end %>
+
+  <Components.image_preview_modal preview_image={@preview_image} />
+</Layouts.app>

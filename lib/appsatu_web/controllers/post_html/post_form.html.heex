@@ -1,4 +1,4 @@
-<.form :let={f} for={@changeset} action={@action}>
+<.form :let={f} for={@changeset} action={@action} multipart>
   <.input field={f[:title]} type="text" label="Title" />
   <.input field={f[:body]} type="textarea" label="Body" />
 
@@ -18,6 +18,35 @@
       options={Enum.map(@tags || [], &{&1.name, &1.id})}
       multiple
     />
+
+  <.input
+    field={f[:cover_image]}
+    type="file"
+    label="Cover image"
+    accept="image/jpeg,image/png,image/webp"
+  />
+
+  <.input
+    field={f[:thumbnail_image]}
+    type="file"
+    label="Thumbnail image"
+    accept="image/jpeg,image/png,image/webp"
+  />
+
+  <.input
+    field={f[:gallery_images]}
+    type="file"
+    label="Gallery images"
+    accept="image/jpeg,image/png,image/webp"
+    multiple
+  />
+
+  <.input
+    field={f[:attachment]}
+    type="file"
+    label="Attachment"
+    accept="image/jpeg,image/png,image/webp"
+  />
 
   <.input field={f[:published]} type="checkbox" label="Published" />
   <footer>
