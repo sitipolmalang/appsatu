@@ -3,9 +3,7 @@ defmodule AppsatuWeb.PostControllerTest do
 
   import Appsatu.BlogFixtures
 
-  @create_attrs %{title: "some title", body: "some body", published: true}
-  @update_attrs %{title: "some updated title", body: "some updated body", published: false}
-  @invalid_attrs %{title: nil, body: nil, published: nil}
+  @invalid_attrs %{title: nil, body: nil, published: nil, category_id: nil}
 
   describe "index" do
     test "lists all posts", %{conn: conn} do
@@ -23,7 +21,9 @@ defmodule AppsatuWeb.PostControllerTest do
 
   describe "create post" do
     test "redirects to show when data is valid", %{conn: conn} do
-      conn = post(conn, ~p"/posts", post: @create_attrs)
+      category = category_fixture()
+      create_attrs = %{title: "some title", body: "some body", published: true, category_id: category.id}
+      conn = post(conn, ~p"/posts", post: create_attrs)
 
       assert %{id: id} = redirected_params(conn)
       assert redirected_to(conn) == ~p"/posts/#{id}"
@@ -51,7 +51,16 @@ defmodule AppsatuWeb.PostControllerTest do
     setup [:create_post]
 
     test "redirects when data is valid", %{conn: conn, post: post} do
-      conn = put(conn, ~p"/posts/#{post}", post: @update_attrs)
+      category = category_fixture()
+
+      update_attrs = %{
+        title: "some updated title",
+        body: "some updated body",
+        published: false,
+        category_id: category.id
+      }
+
+      conn = put(conn, ~p"/posts/#{post}", post: update_attrs)
       assert redirected_to(conn) == ~p"/posts/#{post}"
 
       conn = get(conn, ~p"/posts/#{post}")

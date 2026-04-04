@@ -19,7 +19,7 @@ defmodule Appsatu.Blog do
   """
   def list_posts do
     Repo.all(Post)
-    |> Repo.preload([:category, :tags])
+    |> Repo.preload([:category, :tags, :images])
   end
 
   @doc """
@@ -38,7 +38,7 @@ defmodule Appsatu.Blog do
   """
   def get_post!(id) do
     Repo.get!(Post, id)
-    |> Repo.preload([:category, :tags])
+    |> Repo.preload([:category, :tags, :images])
   end
 
 
@@ -105,6 +105,24 @@ defmodule Appsatu.Blog do
   """
   def change_post(%Post{} = post, attrs \\ %{}) do
     Post.changeset(post, attrs)
+  end
+
+  alias Appsatu.Blog.PostImage
+
+  def create_post_image(attrs) do
+    %PostImage{}
+    |> PostImage.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  def list_post_images(post_id) do
+    Repo.all(from(image in PostImage, where: image.post_id == ^post_id))
+  end
+
+  def delete_post_images(post_id, roles) when is_list(roles) do
+    from(image in PostImage, where: image.post_id == ^post_id and image.role in ^roles)
+    |> Repo.all()
+    |> Enum.each(&Repo.delete!/1)
   end
 
   alias Appsatu.Blog.Category

@@ -32,5 +32,21 @@
     </:item>
 
     <:item title="Published">{@post.published}</:item>
+    <:item title="Images">
+      <%= if @post.images && length(@post.images) > 0 do %>
+        <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
+          <div :for={image <- @post.images} class="space-y-1 rounded-xl border border-base-300 p-2">
+            <img
+              src={image.url}
+              alt={image.filename}
+              class="h-24 w-full rounded-md object-cover ring-1 ring-base-300"
+            />
+            <p class="text-xs font-medium uppercase tracking-wide text-base-content/60">{image.role}</p>
+          </div>
+        </div>
+      <% else %>
+        No images
+      <% end %>
+    </:item>
   </.list>
 </Layouts.app>

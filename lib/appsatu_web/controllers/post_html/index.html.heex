@@ -23,6 +23,17 @@
         <%!-- kosong --%>
       <% end %>
     </:col>
+    <:col :let={post} label="Cover">
+      <%= if image = Enum.find(post.images || [], &(&1.role == "cover")) do %>
+        <img
+          src={image.url}
+          alt={"Cover " <> post.title}
+          class="h-16 w-16 rounded-lg object-cover ring-1 ring-base-300 transition duration-200 hover:scale-105"
+        />
+      <% else %>
+        <span class="text-sm text-base-content/50">No image</span>
+      <% end %>
+    </:col>
 
     
     <%!-- Action buttons --%>
