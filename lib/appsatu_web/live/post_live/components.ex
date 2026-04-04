@@ -231,13 +231,9 @@ defmodule AppsatuWeb.PostLive.Components do
               :for={entry <- @upload.entries}
               class="w-full max-w-44 overflow-hidden rounded-lg border border-base-300 bg-base-100"
             >
-              <%= if String.starts_with?(entry.client_type || "", "image/") do %>
-                <.live_img_preview entry={entry} class="h-24 w-full object-cover" />
-              <% else %>
-                <div class="flex h-24 items-center justify-center text-center text-xs text-base-content/60">
-                  {entry.client_name}
-                </div>
-              <% end %>
+              <div class="flex h-24 items-center justify-center text-center text-xs text-base-content/60">
+                {entry.client_name}
+              </div>
             </div>
           </div>
         <% end %>
