@@ -67,7 +67,8 @@ defmodule Appsatu.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:waffle, "~> 1.1"},
-      {:waffle_ecto, "~> 0.0.9"}
+      {:waffle_ecto, "~> 0.0.9"},
+      {:pbkdf2_elixir, "~> 2.0"},
     ]
   end
 
