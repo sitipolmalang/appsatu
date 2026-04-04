@@ -119,6 +119,13 @@ defmodule Appsatu.Blog do
     Repo.all(from(image in PostImage, where: image.post_id == ^post_id))
   end
 
+  def get_post_image(id), do: Repo.get(PostImage, id)
+  def get_post_image!(id), do: Repo.get!(PostImage, id)
+
+  def delete_post_image(%PostImage{} = image) do
+    Repo.delete(image)
+  end
+
   def delete_post_images(post_id, roles) when is_list(roles) do
     from(image in PostImage, where: image.post_id == ^post_id and image.role in ^roles)
     |> Repo.all()
