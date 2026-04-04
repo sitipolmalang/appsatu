@@ -7,7 +7,7 @@ defmodule AppsatuWeb.PostLive do
   alias AppsatuWeb.PostLive.Uploads
 
   @allowed_upload_types ~w(.jpg .jpeg .png .webp)
-  @max_upload_size 5 * 1024 * 1024
+  @max_upload_size 2 * 1024 * 1024
   @upload_keys [:cover_image, :thumbnail_image, :attachment, :gallery_images]
 
   @impl true
@@ -41,7 +41,7 @@ defmodule AppsatuWeb.PostLive do
       )
       |> allow_upload(:gallery_images,
         accept: @allowed_upload_types,
-        max_entries: 8,
+        max_entries: 3,
         max_file_size: @max_upload_size,
         auto_upload: true
       )
