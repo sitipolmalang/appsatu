@@ -8,6 +8,7 @@ defmodule AppsatuWeb.PostLive do
 
   @allowed_upload_types ~w(.jpg .jpeg .png .webp)
   @max_upload_size 5 * 1024 * 1024
+  @upload_keys [:cover_image, :thumbnail_image, :attachment, :gallery_images]
 
   @impl true
   def mount(_params, _session, socket) do
@@ -163,14 +164,7 @@ defmodule AppsatuWeb.PostLive do
   end
 
   def handle_event("cancel-upload", %{"ref" => ref, "target" => target}, socket) do
-    target_atom =
-      case target do
-        "cover_image" -> :cover_image
-        "thumbnail_image" -> :thumbnail_image
-        "attachment" -> :attachment
-        "gallery_images" -> :gallery_images
-        _ -> nil
-      end
+    target_atom = upload_target(target)
 
     if target_atom do
       {:noreply, cancel_upload(socket, target_atom, ref)}
@@ -225,7 +219,7 @@ defmodule AppsatuWeb.PostLive do
   end
 
   defp any_uploads_in_progress?(socket) do
-    [:cover_image, :thumbnail_image, :attachment, :gallery_images]
+    @upload_keys
     |> Enum.any?(fn key ->
       {_, in_progress_entries} = uploaded_entries(socket, key)
       in_progress_entries != []
@@ -233,7 +227,7 @@ defmodule AppsatuWeb.PostLive do
   end
 
   defp any_upload_errors?(socket) do
-    [:cover_image, :thumbnail_image, :attachment, :gallery_images]
+    @upload_keys
     |> Enum.any?(fn key ->
       upload = Map.fetch!(socket.assigns.uploads, key)
       upload_has_errors?(upload)
@@ -347,11 +341,21 @@ defmodule AppsatuWeb.PostLive do
   end
 
   defp submit_disabled?(uploads) do
-    [:cover_image, :thumbnail_image, :attachment, :gallery_images]
+    @upload_keys
     |> Enum.any?(fn key ->
       upload = Map.fetch!(uploads, key)
       upload_has_errors?(upload) || Enum.any?(upload.entries, &(&1.progress < 100))
     end)
+  end
+
+  defp upload_target(target) do
+    case target do
+      "cover_image" -> :cover_image
+      "thumbnail_image" -> :thumbnail_image
+      "attachment" -> :attachment
+      "gallery_images" -> :gallery_images
+      _ -> nil
+    end
   end
 
   defp upload_has_errors?(upload) do

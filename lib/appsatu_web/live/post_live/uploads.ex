@@ -25,13 +25,13 @@ defmodule AppsatuWeb.PostLive.Uploads do
        }}
     else
       {:error, :invalid_extension} ->
-        {:error, "Tipe file tidak didukung. Gunakan JPG, JPEG, PNG, atau WEBP"}
+        upload_error(:invalid_extension)
 
       {:error, :invalid_content} ->
-        {:error, "Isi file tidak sesuai dengan tipe gambar yang diizinkan"}
+        upload_error(:invalid_content)
 
       {:error, _reason} ->
-        {:error, "Gagal membaca file upload"}
+        upload_error(:read_failed)
     end
   end
 
@@ -49,13 +49,13 @@ defmodule AppsatuWeb.PostLive.Uploads do
        }}
     else
       {:error, :invalid_extension} ->
-        {:error, "Tipe file tidak didukung. Gunakan JPG, JPEG, PNG, atau WEBP"}
+        upload_error(:invalid_extension)
 
       {:error, :invalid_content} ->
-        {:error, "Isi file tidak sesuai dengan tipe gambar yang diizinkan"}
+        upload_error(:invalid_content)
 
       {:error, _reason} ->
-        {:error, "Gagal membaca file upload"}
+        upload_error(:read_failed)
     end
   end
 
@@ -113,4 +113,12 @@ defmodule AppsatuWeb.PostLive.Uploads do
        do: "image/webp"
 
   defp detect_content_type(_binary), do: nil
+
+  defp upload_error(:invalid_extension),
+    do: {:error, "Tipe file tidak didukung. Gunakan JPG, JPEG, PNG, atau WEBP"}
+
+  defp upload_error(:invalid_content),
+    do: {:error, "Isi file tidak sesuai dengan tipe gambar yang diizinkan"}
+
+  defp upload_error(:read_failed), do: {:error, "Gagal membaca file upload"}
 end
