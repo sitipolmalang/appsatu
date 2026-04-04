@@ -68,6 +68,8 @@ defmodule Appsatu.MixProject do
       {:bandit, "~> 1.5"},
       {:waffle, "~> 1.1"},
       {:waffle_ecto, "~> 0.0.9"},
+      {:ex_aws, "~> 2.6"},
+      {:ex_aws_s3, "~> 2.5"},
       {:pbkdf2_elixir, "~> 2.0"},
     ]
   end
