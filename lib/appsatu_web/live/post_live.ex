@@ -127,7 +127,7 @@ defmodule AppsatuWeb.PostLive do
 
   def handle_event("delete", %{"id" => id}, socket) do
     post = Blog.get_post!(id)
-    {:ok, _deleted_post} = Blog.delete_post(post)
+    {:ok, _deleted_post} = delete_post_with_uploads(post)
 
     {:noreply,
      socket
@@ -194,7 +194,7 @@ defmodule AppsatuWeb.PostLive do
                  |> push_navigate(to: ~p"/posts")}
 
               {:error, message} ->
-                {:ok, _deleted_post} = Blog.delete_post(post)
+                {:ok, _deleted_post} = delete_post_with_uploads(post)
                 {:noreply, put_flash(socket, :error, message)}
             end
 
@@ -241,12 +241,11 @@ defmodule AppsatuWeb.PostLive do
   end
 
   defp persist_uploads(socket, post) do
-    with :ok <- Uploads.ensure_upload_dir(),
-         {:ok, cover} <- consume_role_upload(socket, :cover_image, "cover", post),
+    with {:ok, cover} <- consume_role_upload(socket, :cover_image, "cover", post),
          {:ok, thumbnail} <- consume_role_upload(socket, :thumbnail_image, "thumbnail", post),
          {:ok, attachment} <- consume_role_upload(socket, :attachment, "attachment", post),
          {:ok, gallery} <- consume_gallery_uploads(socket, post) do
-      replace_single_roles(post, [cover, thumbnail, attachment])
+      existing_single_role_images = replaceable_images(post, [cover, thumbnail, attachment])
 
       all_uploads =
         [cover, thumbnail, attachment]
@@ -257,16 +256,27 @@ defmodule AppsatuWeb.PostLive do
       |> Enum.reduce_while(:ok, fn upload, :ok ->
         case Blog.create_post_image(Map.put(upload, :post_id, post.id)) do
           {:ok, _image} -> {:cont, :ok}
-          {:error, _changeset} -> {:halt, :error}
+          {:error, changeset} -> {:halt, {:error, changeset}}
         end
       end)
       |> case do
-        :ok -> :ok
-        :error -> {:error, "Gagal menyimpan metadata upload"}
+        :ok ->
+          cleanup_replaced_images(existing_single_role_images)
+
+        {:error, changeset} ->
+          {:error, "Gagal menyimpan metadata upload: #{first_changeset_error(changeset)}"}
       end
     else
       {:error, reason} -> {:error, reason}
     end
+  end
+
+  defp first_changeset_error(changeset) do
+    changeset
+    |> Ecto.Changeset.traverse_errors(fn {msg, _opts} -> msg end)
+    |> Enum.find_value("validasi gagal", fn {_field, messages} ->
+      List.first(messages)
+    end)
   end
 
   defp consume_role_upload(socket, upload_key, role, post) do
@@ -301,7 +311,7 @@ defmodule AppsatuWeb.PostLive do
     _ -> {:error, "Gagal memproses upload gallery"}
   end
 
-  defp replace_single_roles(post, uploads) do
+  defp replaceable_images(post, uploads) do
     roles_to_replace =
       uploads
       |> Enum.reject(&is_nil/1)
@@ -309,15 +319,30 @@ defmodule AppsatuWeb.PostLive do
       |> Enum.filter(&(&1 in ["cover", "thumbnail", "attachment"]))
       |> Enum.uniq()
 
-    if roles_to_replace != [] do
-      existing_images = Blog.list_post_images(post.id)
-      images_to_remove = Enum.filter(existing_images, &(&1.role in roles_to_replace))
+    existing_images = Blog.list_post_images(post.id)
+    Enum.filter(existing_images, &(&1.role in roles_to_replace))
+  end
 
-      Enum.each(images_to_remove, fn image ->
+  defp cleanup_replaced_images(images) do
+    ids = Enum.map(images, & &1.id)
+    _ = Blog.delete_post_images_by_ids(ids)
+
+    Enum.each(images, fn image ->
+      _ = Uploads.delete_uploaded_file(image)
+    end)
+
+    :ok
+  end
+
+  defp delete_post_with_uploads(post) do
+    existing_images = Blog.list_post_images(post.id)
+
+    with {:ok, deleted_post} <- Blog.delete_post(post) do
+      Enum.each(existing_images, fn image ->
         _ = Uploads.delete_uploaded_file(image)
       end)
 
-      Blog.delete_post_images(post.id, roles_to_replace)
+      {:ok, deleted_post}
     end
   end
 
@@ -574,12 +599,15 @@ defmodule AppsatuWeb.PostLive do
   defp filename_label(_), do: "uploaded-file"
 
   defp image_url(image) do
-    case filename_label(image.filename) do
-      "uploaded-file" ->
-        image.url
+    case Map.get(image, :url) do
+      url when is_binary(url) and url != "" ->
+        url
 
-      file_name ->
-        "/uploads/posts/#{image.post_id}/#{image.role}/#{file_name}"
+      _ ->
+        case filename_label(image.filename) do
+          "uploaded-file" -> image.url
+          file_name -> "/uploads/posts/#{image.post_id}/#{image.role}/#{file_name}"
+        end
     end
   end
 end

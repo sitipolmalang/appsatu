@@ -132,6 +132,11 @@ defmodule Appsatu.Blog do
     |> Enum.each(&Repo.delete!/1)
   end
 
+  def delete_post_images_by_ids(ids) when is_list(ids) do
+    from(image in PostImage, where: image.id in ^ids)
+    |> Repo.delete_all()
+  end
+
   alias Appsatu.Blog.Category
 
   @doc """

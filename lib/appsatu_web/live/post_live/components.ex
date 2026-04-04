@@ -277,12 +277,15 @@ defmodule AppsatuWeb.PostLive.Components do
   defp filename_label(_), do: "uploaded-file"
 
   defp image_url(image) do
-    case filename_label(image.filename) do
-      "uploaded-file" ->
-        image.url
+    case Map.get(image, :url) do
+      url when is_binary(url) and url != "" ->
+        url
 
-      file_name ->
-        "/uploads/posts/#{image.post_id}/#{image.role}/#{file_name}"
+      _ ->
+        case filename_label(image.filename) do
+          "uploaded-file" -> image.url
+          file_name -> "/uploads/posts/#{image.post_id}/#{image.role}/#{file_name}"
+        end
     end
   end
 end

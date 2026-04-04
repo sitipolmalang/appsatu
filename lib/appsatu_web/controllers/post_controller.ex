@@ -3,6 +3,7 @@ defmodule AppsatuWeb.PostController do
 
   alias Appsatu.Blog
   alias Appsatu.Blog.Post
+  alias AppsatuWeb.PostLive.Uploads
 
   @allowed_content_types ~w(image/jpeg image/png image/webp)
   @max_upload_size 5 * 1024 * 1024
@@ -40,7 +41,7 @@ defmodule AppsatuWeb.PostController do
         render_post_form(conn, :new, changeset)
 
       {:error, :persist_upload, post} ->
-        {:ok, _deleted_post} = Blog.delete_post(post)
+        {:ok, _deleted_post} = delete_post_with_uploads(post)
 
         changeset =
           %Post{}
@@ -119,7 +120,7 @@ defmodule AppsatuWeb.PostController do
 
   def delete(conn, %{"id" => id}) do
     post = Blog.get_post!(id)
-    {:ok, _post} = Blog.delete_post(post)
+    {:ok, _post} = delete_post_with_uploads(post)
 
     conn
     |> put_flash(:info, "Post deleted successfully.")
@@ -173,17 +174,14 @@ defmodule AppsatuWeb.PostController do
 
   defp prepare_optional_upload(%Plug.Upload{} = upload, role) do
     with :ok <- validate_upload(upload),
-         {:ok, unique_filename} <- build_unique_filename(upload),
-         {:ok, relative_url} <- build_relative_url(unique_filename) do
-      {:ok,
-       %{
-         role: role,
-         upload: upload,
-         filename: unique_filename,
-         url: relative_url,
-         content_type: upload.content_type,
-         size: upload_size(upload.path)
-       }}
+         {:ok, prepared} <- Uploads.prepare_upload_from_plug(upload, role) do
+      {:ok, prepared}
+    else
+      {:error, reason} when is_binary(reason) ->
+        {:error, :upload, reason}
+
+      other ->
+        other
     end
   end
 
@@ -204,53 +202,30 @@ defmodule AppsatuWeb.PostController do
     end
   end
 
-  defp build_unique_filename(%Plug.Upload{} = upload) do
-    extension =
-      upload.filename
-      |> Path.extname()
-      |> String.downcase()
-
-    final_extension =
-      if extension == "" do
-        extension_from_content_type(upload.content_type)
-      else
-        extension
-      end
-
-    case final_extension do
-      nil -> {:error, :upload, "Ekstensi file tidak dikenali"}
-      ext -> {:ok, Ecto.UUID.generate() <> ext}
-    end
-  end
-
-  defp build_relative_url(unique_filename) do
-    {:ok, "/uploads/" <> unique_filename}
-  end
-
-  defp extension_from_content_type("image/jpeg"), do: ".jpg"
-  defp extension_from_content_type("image/png"), do: ".png"
-  defp extension_from_content_type("image/webp"), do: ".webp"
-  defp extension_from_content_type(_), do: nil
-
   defp persist_uploads(_post, []), do: :ok
 
   defp persist_uploads(post, uploads) do
-    replace_single_roles(post, uploads)
+    existing_single_role_images = replaceable_images(post, uploads)
 
     uploads
     |> Enum.reduce_while(:ok, fn upload, :ok ->
-      case copy_and_save_upload(post, upload) do
-        :ok -> {:cont, :ok}
-        :error -> {:halt, :error}
+      upload
+      |> Map.put(:post_id, post.id)
+      |> Blog.create_post_image()
+      |> case do
+        {:ok, _post_image} -> {:cont, :ok}
+        {:error, _changeset} -> {:halt, :error}
       end
     end)
     |> case do
-      :ok -> :ok
+      :ok ->
+        cleanup_replaced_images(existing_single_role_images)
+
       :error -> {:error, :persist_upload, post}
     end
   end
 
-  defp replace_single_roles(post, uploads) do
+  defp replaceable_images(post, uploads) do
     roles_to_replace =
       uploads
       |> Enum.map(& &1.role)
@@ -258,43 +233,30 @@ defmodule AppsatuWeb.PostController do
       |> Enum.filter(&(&1 in ["cover", "thumbnail", "attachment"]))
 
     existing_images = Blog.list_post_images(post.id)
-    images_to_remove = Enum.filter(existing_images, &(&1.role in roles_to_replace))
+    Enum.filter(existing_images, &(&1.role in roles_to_replace))
+  end
 
-    Enum.each(images_to_remove, fn image ->
-      delete_uploaded_file(image.url)
+  defp cleanup_replaced_images(images) do
+    ids = Enum.map(images, & &1.id)
+    _ = Blog.delete_post_images_by_ids(ids)
+
+    Enum.each(images, fn image ->
+      _ = Uploads.delete_uploaded_file(image)
     end)
 
-    Blog.delete_post_images(post.id, roles_to_replace)
+    :ok
   end
 
-  defp copy_and_save_upload(post, upload_data) do
-    with :ok <- ensure_upload_dir(),
-         :ok <- File.cp(upload_data.upload.path, upload_disk_path(upload_data.filename)),
-         {:ok, _post_image} <-
-           Blog.create_post_image(%{
-             post_id: post.id,
-             role: upload_data.role,
-             url: upload_data.url,
-             filename: upload_data.filename,
-             content_type: upload_data.content_type,
-             size: upload_data.size
-           }) do
-      :ok
-    else
-      _ -> :error
+  defp delete_post_with_uploads(post) do
+    existing_images = Blog.list_post_images(post.id)
+
+    with {:ok, deleted_post} <- Blog.delete_post(post) do
+      Enum.each(existing_images, fn image ->
+        _ = Uploads.delete_uploaded_file(image)
+      end)
+
+      {:ok, deleted_post}
     end
-  end
-
-  defp upload_disk_path(filename) do
-    Path.join(upload_dir(), filename)
-  end
-
-  defp upload_dir do
-    Path.join(Application.app_dir(:appsatu, "priv/static"), "uploads")
-  end
-
-  defp ensure_upload_dir do
-    File.mkdir_p(upload_dir())
   end
 
   defp upload_size(path) do
@@ -302,12 +264,5 @@ defmodule AppsatuWeb.PostController do
       {:ok, %{size: size}} -> size
       _ -> 0
     end
-  end
-
-  defp delete_uploaded_file(url) do
-    filename = Path.basename(url)
-    path = upload_disk_path(filename)
-    _ = File.rm(path)
-    :ok
   end
 end

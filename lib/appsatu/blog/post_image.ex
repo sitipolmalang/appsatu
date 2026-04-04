@@ -34,18 +34,31 @@ defmodule Appsatu.Blog.PostImage do
     scope = Ecto.Changeset.apply_changes(changeset)
     filename = Ecto.Changeset.get_field(changeset, :filename)
 
-    case filename do
-      nil ->
-        changeset
-
-      %{file_name: file_name} when is_binary(file_name) ->
-        put_change(changeset, :url, "/uploads/posts/#{scope.post_id}/#{scope.role}/#{file_name}")
-
-      file_name when is_binary(file_name) ->
-        put_change(changeset, :url, "/uploads/posts/#{scope.post_id}/#{scope.role}/#{file_name}")
-
-      _ ->
-        changeset
+    case build_upload_url(filename, scope) do
+      nil -> changeset
+      url -> put_change(changeset, :url, url)
     end
   end
+
+  defp build_upload_url(_filename, %{post_id: nil}), do: nil
+  defp build_upload_url(_filename, %{role: nil}), do: nil
+  defp build_upload_url(nil, _scope), do: nil
+
+  defp build_upload_url(filename, scope) do
+    PostImageUploader.url({filename, scope}) || fallback_upload_url(filename, scope)
+  rescue
+    _ -> fallback_upload_url(filename, scope)
+  end
+
+  defp fallback_upload_url(filename, scope) do
+    case extract_file_name(filename) do
+      nil -> nil
+      file_name -> "/uploads/posts/#{scope.post_id}/#{scope.role}/#{file_name}"
+    end
+  end
+
+  defp extract_file_name(%{file_name: file_name}) when is_binary(file_name), do: file_name
+  defp extract_file_name(%Plug.Upload{filename: file_name}) when is_binary(file_name), do: file_name
+  defp extract_file_name(file_name) when is_binary(file_name), do: file_name
+  defp extract_file_name(_), do: nil
 end
