@@ -26,7 +26,7 @@
     <:col :let={post} label="Cover">
       <%= if image = Enum.find(post.images || [], &(&1.role == "cover")) do %>
         <img
-          src={image.url}
+          src={image_url(image)}
           alt={"Cover " <> post.title}
           class="h-16 w-16 rounded-lg object-cover ring-1 ring-base-300 transition duration-200 hover:scale-105"
         />

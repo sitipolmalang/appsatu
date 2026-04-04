@@ -31,6 +31,10 @@ config :appsatu, AppsatuWeb.Endpoint,
 # at the `config/runtime.exs`.
 config :appsatu, Appsatu.Mailer, adapter: Swoosh.Adapters.Local
 
+config :waffle,
+  storage: Waffle.Storage.Local,
+  storage_dir_prefix: "priv/static"
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.25.4",

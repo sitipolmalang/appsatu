@@ -20,6 +20,12 @@ defmodule AppsatuWeb.PostLive do
       |> assign(:preview_image, nil)
       |> assign(:page_title, "Posts")
       |> stream(:posts, [])
+      |> allow_upload(:cover_image,
+        accept: @allowed_upload_types,
+        max_entries: 1,
+        max_file_size: @max_upload_size,
+        auto_upload: true
+      )
       |> allow_upload(:thumbnail_image,
         accept: @allowed_upload_types,
         max_entries: 1,
@@ -135,7 +141,7 @@ defmodule AppsatuWeb.PostLive do
     with {id, ""} <- Integer.parse(image_id),
          %{} = image <- Blog.get_post_image(id),
          true <- image.post_id == post.id,
-         _ <- Uploads.delete_uploaded_file(image.url),
+         _ <- Uploads.delete_uploaded_file(image),
          {:ok, _deleted_image} <- Blog.delete_post_image(image) do
       {:noreply,
        socket
@@ -159,6 +165,7 @@ defmodule AppsatuWeb.PostLive do
   def handle_event("cancel-upload", %{"ref" => ref, "target" => target}, socket) do
     target_atom =
       case target do
+        "cover_image" -> :cover_image
         "thumbnail_image" -> :thumbnail_image
         "attachment" -> :attachment
         "gallery_images" -> :gallery_images
@@ -218,7 +225,7 @@ defmodule AppsatuWeb.PostLive do
   end
 
   defp any_uploads_in_progress?(socket) do
-    [:thumbnail_image, :attachment, :gallery_images]
+    [:cover_image, :thumbnail_image, :attachment, :gallery_images]
     |> Enum.any?(fn key ->
       {_, in_progress_entries} = uploaded_entries(socket, key)
       in_progress_entries != []
@@ -226,7 +233,7 @@ defmodule AppsatuWeb.PostLive do
   end
 
   defp any_upload_errors?(socket) do
-    [:thumbnail_image, :attachment, :gallery_images]
+    [:cover_image, :thumbnail_image, :attachment, :gallery_images]
     |> Enum.any?(fn key ->
       upload = Map.fetch!(socket.assigns.uploads, key)
       upload_has_errors?(upload)
@@ -235,10 +242,10 @@ defmodule AppsatuWeb.PostLive do
 
   defp persist_uploads(socket, post) do
     with :ok <- Uploads.ensure_upload_dir(),
-         {:ok, thumbnail} <- consume_role_upload(socket, :thumbnail_image, "thumbnail"),
-         {:ok, attachment} <- consume_role_upload(socket, :attachment, "attachment"),
-         {:ok, cover} <- Uploads.build_cover_from_thumbnail(thumbnail),
-         {:ok, gallery} <- consume_gallery_uploads(socket) do
+         {:ok, cover} <- consume_role_upload(socket, :cover_image, "cover", post),
+         {:ok, thumbnail} <- consume_role_upload(socket, :thumbnail_image, "thumbnail", post),
+         {:ok, attachment} <- consume_role_upload(socket, :attachment, "attachment", post),
+         {:ok, gallery} <- consume_gallery_uploads(socket, post) do
       replace_single_roles(post, [cover, thumbnail, attachment])
 
       all_uploads =
@@ -262,11 +269,11 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
-  defp consume_role_upload(socket, upload_key, role) do
+  defp consume_role_upload(socket, upload_key, role, post) do
     uploaded =
       consume_uploaded_entries(socket, upload_key, fn %{path: path}, entry ->
-        case Uploads.copy_upload(path, entry.client_name, entry.client_type) do
-          {:ok, map} -> {:ok, Map.put(map, :role, role)}
+        case Uploads.prepare_upload_attrs(path, entry.client_name, entry.client_type, post, role) do
+          {:ok, map} -> {:ok, map}
           {:error, _reason} -> :error
         end
       end)
@@ -280,11 +287,11 @@ defmodule AppsatuWeb.PostLive do
     _ -> {:error, "Gagal memproses upload #{role}"}
   end
 
-  defp consume_gallery_uploads(socket) do
+  defp consume_gallery_uploads(socket, post) do
     uploaded =
       consume_uploaded_entries(socket, :gallery_images, fn %{path: path}, entry ->
-        case Uploads.copy_upload(path, entry.client_name, entry.client_type) do
-          {:ok, map} -> {:ok, Map.put(map, :role, "gallery")}
+        case Uploads.prepare_upload_attrs(path, entry.client_name, entry.client_type, post, "gallery") do
+          {:ok, map} -> {:ok, map}
           {:error, _reason} -> :error
         end
       end)
@@ -307,7 +314,7 @@ defmodule AppsatuWeb.PostLive do
       images_to_remove = Enum.filter(existing_images, &(&1.role in roles_to_replace))
 
       Enum.each(images_to_remove, fn image ->
-        _ = Uploads.delete_uploaded_file(image.url)
+        _ = Uploads.delete_uploaded_file(image)
       end)
 
       Blog.delete_post_images(post.id, roles_to_replace)
@@ -347,7 +354,7 @@ defmodule AppsatuWeb.PostLive do
                     <div class="avatar">
                       <div class="h-14 w-14 rounded-xl ring-1 ring-base-300">
                         <%= if image = Enum.find(post.images || [], &(&1.role == "cover")) do %>
-                          <img src={image.url} alt={post.title} class="object-cover" />
+                          <img src={image_url(image)} alt={post.title} class="object-cover" />
                         <% else %>
                           <div class="flex h-full w-full items-center justify-center bg-base-200 text-base-content/40">
                             <.icon name="hero-photo" class="size-6" />
@@ -419,7 +426,7 @@ defmodule AppsatuWeb.PostLive do
         <% :new -> %>
           <Components.post_form_section
             title="Create Post"
-            subtitle="Buat post dengan thumbnail, gallery, dan attachment. Cover dibuat otomatis dari thumbnail."
+            subtitle="Buat post dengan cover, thumbnail, gallery, dan attachment."
             form={@form}
             categories={@categories}
             tags={@tags}
@@ -492,15 +499,15 @@ defmodule AppsatuWeb.PostLive do
                   <button
                     type="button"
                     phx-click="open-image-preview"
-                    phx-value-url={image.url}
-                    phx-value-filename={image.filename}
+                    phx-value-url={image_url(image)}
+                    phx-value-filename={filename_label(image.filename)}
                     phx-value-role={image.role}
                     class="group block w-full cursor-pointer"
                   >
                     <div class="relative">
                       <img
-                        src={image.url}
-                        alt={image.filename}
+                        src={image_url(image)}
+                        alt={filename_label(image.filename)}
                         class="h-28 w-full object-cover transition duration-200 group-hover:scale-[1.02] group-hover:opacity-90"
                       />
                       <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/25">
@@ -525,7 +532,7 @@ defmodule AppsatuWeb.PostLive do
   end
 
   defp submit_disabled?(uploads) do
-    [:thumbnail_image, :attachment, :gallery_images]
+    [:cover_image, :thumbnail_image, :attachment, :gallery_images]
     |> Enum.any?(fn key ->
       upload = Map.fetch!(uploads, key)
       upload_has_errors?(upload) || Enum.any?(upload.entries, &(&1.progress < 100))
@@ -560,5 +567,19 @@ defmodule AppsatuWeb.PostLive do
     form[:body].value
     |> to_string()
     |> String.length()
+  end
+
+  defp filename_label(%{file_name: file_name}) when is_binary(file_name), do: file_name
+  defp filename_label(file_name) when is_binary(file_name), do: file_name
+  defp filename_label(_), do: "uploaded-file"
+
+  defp image_url(image) do
+    case filename_label(image.filename) do
+      "uploaded-file" ->
+        image.url
+
+      file_name ->
+        "/uploads/posts/#{image.post_id}/#{image.role}/#{file_name}"
+    end
   end
 end

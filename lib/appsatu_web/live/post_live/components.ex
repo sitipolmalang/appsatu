@@ -89,10 +89,9 @@ defmodule AppsatuWeb.PostLive.Components do
 
           <div class="rounded-2xl border border-base-300 bg-base-50/30 p-4">
             <p class="mb-3 text-sm font-semibold uppercase tracking-wide text-base-content/70">Media Upload</p>
-            <p class="mb-4 text-xs text-base-content/60">
-              Cover image dibuat otomatis dari Thumbnail (versi kecil/compress).
-            </p>
+            <p class="mb-4 text-xs text-base-content/60">Cover, thumbnail, attachment, dan gallery diupload terpisah.</p>
             <div class="grid gap-4 md:grid-cols-2">
+              <.upload_field upload={@uploads.cover_image} label="Cover Image" target="cover_image" />
               <.upload_field upload={@uploads.thumbnail_image} label="Thumbnail Image" target="thumbnail_image" />
               <.upload_field upload={@uploads.attachment} label="Attachment" target="attachment" />
               <.upload_field upload={@uploads.gallery_images} label="Gallery Images" target="gallery_images" />
@@ -113,15 +112,15 @@ defmodule AppsatuWeb.PostLive.Components do
                 <button
                   type="button"
                   phx-click="open-image-preview"
-                  phx-value-url={image.url}
-                  phx-value-filename={image.filename}
+                  phx-value-url={image_url(image)}
+                  phx-value-filename={filename_label(image.filename)}
                   phx-value-role={image.role}
                   class="group block w-full cursor-pointer"
                 >
                   <div class="relative">
                     <img
-                      src={image.url}
-                      alt={image.filename}
+                      src={image_url(image)}
+                      alt={filename_label(image.filename)}
                       class="h-24 w-full object-cover transition duration-200 group-hover:scale-[1.02] group-hover:opacity-90"
                     />
                     <div class="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition group-hover:bg-black/25">
@@ -276,4 +275,18 @@ defmodule AppsatuWeb.PostLive.Components do
   defp upload_error_to_text(:not_accepted), do: "Tipe file tidak didukung. Gunakan JPG, JPEG, PNG, atau WEBP"
   defp upload_error_to_text(:too_many_files), do: "Jumlah file melebihi batas"
   defp upload_error_to_text(_), do: "Upload gagal"
+
+  defp filename_label(%{file_name: file_name}) when is_binary(file_name), do: file_name
+  defp filename_label(file_name) when is_binary(file_name), do: file_name
+  defp filename_label(_), do: "uploaded-file"
+
+  defp image_url(image) do
+    case filename_label(image.filename) do
+      "uploaded-file" ->
+        image.url
+
+      file_name ->
+        "/uploads/posts/#{image.post_id}/#{image.role}/#{file_name}"
+    end
+  end
 end
