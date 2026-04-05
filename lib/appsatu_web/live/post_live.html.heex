@@ -1,5 +1,5 @@
 <Layouts.app flash={@flash} current_scope={@current_scope}>
-  <%= case @live_action do %>
+  <%= case @live_action || :index do %>
     <% :index -> %>
       <section class="space-y-6">
         <div class="rounded-3xl bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500 p-[1px] shadow-xl">
@@ -78,20 +78,34 @@
               </span>
             </:col>
 
+            <:col :let={{_id, post}} label="Author">
+              <span class="text-xs text-base-content/70">
+                <%= if post.user do %>
+                  <%= post.user.email %>
+                <% else %>
+                  Unknown
+                <% end %>
+              </span>
+            </:col>
+
             <:action :let={{_id, post}}>
-              <.link patch={~p"/posts/#{post.id}/edit"} class="link link-primary">Edit</.link>
+              <%= if @current_user_id && @current_user_id == post.user_id do %>
+                <.link patch={~p"/posts/#{post.id}/edit"} class="link link-primary">Edit</.link>
+              <% end %>
             </:action>
 
             <:action :let={{_id, post}}>
-              <button
-                type="button"
-                phx-click="delete"
-                phx-value-id={post.id}
-                data-confirm="Yakin hapus post ini?"
-                class="link link-error"
-              >
-                Delete
-              </button>
+              <%= if @current_user_id && @current_user_id == post.user_id do %>
+                <button
+                  type="button"
+                  phx-click="delete"
+                  phx-value-id={post.id}
+                  data-confirm="Yakin hapus post ini?"
+                  class="link link-error"
+                >
+                  Delete
+                </button>
+              <% end %>
             </:action>
           </.table>
         </div>
@@ -136,9 +150,11 @@
           <.button navigate={~p"/posts"} class="btn btn-ghost rounded-full">
             <.icon name="hero-arrow-left" class="size-4" /> Back
           </.button>
-          <.button patch={~p"/posts/#{@post.id}/edit"} class="btn btn-primary rounded-full">
-            <.icon name="hero-pencil-square" class="size-4" /> Edit
-          </.button>
+          <%= if @current_user_id && @current_user_id == @post.user_id do %>
+            <.button patch={~p"/posts/#{@post.id}/edit"} class="btn btn-primary rounded-full">
+              <.icon name="hero-pencil-square" class="size-4" /> Edit
+            </.button>
+          <% end %>
         </div>
 
         <article class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm sm:p-8">

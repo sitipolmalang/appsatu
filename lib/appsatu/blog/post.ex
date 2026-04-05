@@ -9,6 +9,7 @@ defmodule Appsatu.Blog.Post do
     field(:published, :boolean, default: false)
     field(:tag_ids, {:array, :id}, virtual: true)
 
+    belongs_to(:user, Appsatu.Accounts.User)
     belongs_to(:category, Appsatu.Blog.Category)
 
     many_to_many(:tags, Appsatu.Blog.Tag,
@@ -23,9 +24,10 @@ defmodule Appsatu.Blog.Post do
 
   def changeset(post, attrs) do
     post
-    |> cast(attrs, [:title, :body, :published, :category_id, :tag_ids])
+    |> cast(attrs, [:title, :body, :published, :category_id, :user_id, :tag_ids])
     |> validate_required([:title, :body, :published, :category_id])
     |> foreign_key_constraint(:category_id)
+    |> foreign_key_constraint(:user_id)
     |> maybe_put_tags(attrs)
   end
 

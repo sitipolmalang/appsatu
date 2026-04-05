@@ -19,7 +19,35 @@ defmodule Appsatu.Blog do
   """
   def list_posts do
     Repo.all(Post)
-    |> Repo.preload([:category, :tags, :images])
+    |> Repo.preload([:category, :tags, :images, :user])
+  end
+
+  @doc """
+  Returns the list of posts for a specific user.
+  """
+  def list_user_posts(user_id) do
+    Repo.all(from p in Post, where: p.user_id == ^user_id)
+    |> Repo.preload([:category, :tags, :images, :user])
+  end
+
+  @doc """
+  Checks if a user owns a post.
+  """
+  def user_owns_post?(%Post{} = post, user_id), do: post.user_id == user_id
+
+  @doc """
+  Gets a single post for a specific user (with authorization).
+  Returns nil if post doesn't exist or doesn't belong to user.
+  """
+  def get_user_post!(user_id, post_id) do
+    Repo.get!(Post, post_id)
+    |> Repo.preload([:category, :tags, :images, :user])
+    |> case do
+      %{user_id: ^user_id} = post -> post
+      _ -> raise Ecto.NoResultsError
+    end
+  rescue
+    Ecto.NoResultsError -> nil
   end
 
   @doc """
@@ -38,7 +66,7 @@ defmodule Appsatu.Blog do
   """
   def get_post!(id) do
     Repo.get!(Post, id)
-    |> Repo.preload([:category, :tags, :images])
+    |> Repo.preload([:category, :tags, :images, :user])
   end
 
 

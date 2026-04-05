@@ -21,52 +21,6 @@ defmodule AppsatuWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
-    live "/posts", PostLive, :index
-    live "/posts/new", PostLive, :new
-    live "/posts/:id/edit", PostLive, :edit
-    live "/posts/:id", PostLive, :show
-    resources "/categories", CategoryController
-    resources "/tags", TagController
-  end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", AppsatuWeb do
-  #   pipe_through :api
-  # end
-
-  # Enable LiveDashboard and Swoosh mailbox preview in development
-  if Application.compile_env(:appsatu, :dev_routes) do
-    # If you want to use the LiveDashboard in production, you should put
-    # it behind authentication and allow only admins to access it.
-    # If your application does not have an admins-only section yet,
-    # you can use Plug.BasicAuth to set up some basic authentication
-    # as long as you are also using SSL (which you should anyway).
-    import Phoenix.LiveDashboard.Router
-
-    scope "/dev" do
-      pipe_through :browser
-
-      live_dashboard "/dashboard", metrics: AppsatuWeb.Telemetry
-      forward "/mailbox", Plug.Swoosh.MailboxPreview
-    end
-  end
-
-  ## Authentication routes
-
-  scope "/", AppsatuWeb do
-    pipe_through [:browser, :require_authenticated_user]
-
-    live_session :require_authenticated_user,
-      on_mount: [{AppsatuWeb.UserAuth, :require_authenticated}] do
-      live "/users/settings", UserLive.Settings, :edit
-      live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
-    end
-
-    post "/users/update-password", UserSessionController, :update_password
-  end
-
-  scope "/", AppsatuWeb do
-    pipe_through [:browser]
 
     live_session :current_user,
       on_mount: [{AppsatuWeb.UserAuth, :mount_current_scope}] do
@@ -77,5 +31,44 @@ defmodule AppsatuWeb.Router do
 
     post "/users/log-in", UserSessionController, :create
     delete "/users/log-out", UserSessionController, :delete
+  end
+
+  scope "/", AppsatuWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :require_authenticated_user,
+      on_mount: [{AppsatuWeb.UserAuth, :require_authenticated}] do
+      live "/posts/new", PostLive, :new
+      live "/posts/:id/edit", PostLive, :edit
+      live "/posts/:id", PostLive, :show
+
+      resources "/categories", CategoryController
+      resources "/tags", TagController
+
+      live "/users/settings", UserLive.Settings, :edit
+      live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
+
+      post "/users/update-password", UserSessionController, :update_password
+    end
+  end
+
+  scope "/", AppsatuWeb do
+    pipe_through [:browser, :require_authenticated_user]
+
+    live_session :current_user_authenticated,
+      on_mount: [{AppsatuWeb.UserAuth, :require_authenticated}] do
+      live "/posts", PostLive, :index
+    end
+  end
+
+  if Application.compile_env(:appsatu, :dev_routes) do
+    import Phoenix.LiveDashboard.Router
+
+    scope "/dev" do
+      pipe_through :browser
+
+      live_dashboard "/dashboard", metrics: AppsatuWeb.Telemetry
+      forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
   end
 end

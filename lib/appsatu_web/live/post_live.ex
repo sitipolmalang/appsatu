@@ -15,15 +15,30 @@ defmodule AppsatuWeb.PostLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    socket =
+    try do
+      socket =
+        socket
+        |> assign(:categories, Blog.list_categories())
+        |> assign(:tags, Blog.list_tags())
+        |> assign(:post, nil)
+        |> assign(:preview_image, nil)
+        |> assign(:page_title, "Posts")
+        |> stream(:posts, [], reset: true)
+        |> maybe_assign_uploads()
+
+      {:ok, socket}
+    rescue
+      e ->
+        Logger.error("mount error: #{inspect(e, pretty: true)}")
+        {:ok, socket}
+    end
+  end
+
+  defp maybe_assign_uploads(socket) do
+    if socket.assigns[:uploads] do
       socket
-      |> assign(:current_scope, nil)
-      |> assign(:categories, Blog.list_categories())
-      |> assign(:tags, Blog.list_tags())
-      |> assign(:post, nil)
-      |> assign(:preview_image, nil)
-      |> assign(:page_title, "Posts")
-      |> stream(:posts, [])
+    else
+      socket
       |> allow_upload(:cover_image,
         accept: @allowed_upload_types,
         max_entries: 1,
@@ -48,58 +63,76 @@ defmodule AppsatuWeb.PostLive do
         max_file_size: @max_upload_size,
         auto_upload: true
       )
-
-    {:ok, socket}
+    end
   end
 
   @impl true
   def handle_params(params, _uri, socket) do
-    case socket.assigns.live_action do
-      :index ->
-        posts = Blog.list_posts()
+    try do
+      current_user_id = get_current_user_id(socket)
 
-        {:noreply,
-         socket
-         |> assign(:page_title, "Posts")
-         |> assign(:preview_image, nil)
-         |> stream(:posts, posts, reset: true)}
+      case socket.assigns.live_action do
+        action when action in [nil, :index] ->
+          posts = Blog.list_posts()
 
-      :new ->
-        changeset =
-          %Post{}
-          |> Blog.change_post()
-          |> Ecto.Changeset.put_change(:tag_ids, [])
+          {:noreply,
+           socket
+           |> assign(:page_title, "Posts")
+           |> assign(:preview_image, nil)
+           |> assign(:current_user_id, current_user_id)
+           |> stream(:posts, posts, reset: true)}
 
-        {:noreply,
-         socket
-         |> assign(:page_title, "Create Post")
-         |> assign(:post, nil)
-         |> assign(:preview_image, nil)
-         |> put_form_assigns(changeset)}
+        :new ->
+          changeset =
+            %Post{}
+            |> Blog.change_post()
+            |> Ecto.Changeset.put_change(:tag_ids, [])
 
-      :edit ->
-        post = Blog.get_post!(params["id"])
+          {:noreply,
+           socket
+           |> assign(:page_title, "Create Post")
+           |> assign(:post, nil)
+           |> assign(:preview_image, nil)
+           |> assign(:current_user_id, current_user_id)
+           |> put_form_assigns(changeset)}
 
-        changeset =
-          post
-          |> Blog.change_post()
-          |> Ecto.Changeset.put_change(:tag_ids, Enum.map(post.tags, & &1.id))
+        :edit ->
+          post = Blog.get_post!(params["id"])
 
-        {:noreply,
-         socket
-         |> assign(:page_title, "Edit Post")
-         |> assign(:post, post)
-         |> assign(:preview_image, nil)
-         |> put_form_assigns(changeset)}
+          if post.user_id == current_user_id do
+            changeset =
+              post
+              |> Blog.change_post()
+              |> Ecto.Changeset.put_change(:tag_ids, Enum.map(post.tags, & &1.id))
 
-      :show ->
-        post = Blog.get_post!(params["id"])
+            {:noreply,
+             socket
+             |> assign(:page_title, "Edit Post")
+             |> assign(:post, post)
+             |> assign(:preview_image, nil)
+             |> assign(:current_user_id, current_user_id)
+             |> put_form_assigns(changeset)}
+          else
+            {:noreply,
+             socket
+             |> put_flash(:error, "Anda tidak memiliki akses ke post ini")
+             |> push_navigate(to: ~p"/posts")}
+          end
 
-        {:noreply,
-         socket
-         |> assign(:page_title, "Post Detail")
-         |> assign(:preview_image, nil)
-         |> assign(:post, post)}
+        :show ->
+          post = Blog.get_post!(params["id"])
+
+          {:noreply,
+           socket
+           |> assign(:page_title, "Post Detail")
+           |> assign(:preview_image, nil)
+           |> assign(:post, post)
+           |> assign(:current_user_id, current_user_id)}
+      end
+    rescue
+      e ->
+        Logger.error("handle_params error: #{inspect(e, pretty: true)}")
+        {:noreply, socket}
     end
   end
 
@@ -130,19 +163,27 @@ defmodule AppsatuWeb.PostLive do
   end
 
   def handle_event("delete", %{"id" => id}, socket) do
+    current_user_id = get_current_user_id(socket)
     post = Blog.get_post!(id)
-    {:ok, _deleted_post} = delete_post_with_uploads(post)
 
-    {:noreply,
-     socket
-     |> put_flash(:info, "Post deleted")
-     |> stream_delete(:posts, post)}
+    if post.user_id == current_user_id do
+      {:ok, _deleted_post} = delete_post_with_uploads(post)
+
+      {:noreply,
+       socket
+       |> put_flash(:info, "Post deleted")
+       |> stream_delete(:posts, post)}
+    else
+      {:noreply, put_flash(socket, :error, "Anda tidak memiliki akses untuk menghapus post ini")}
+    end
   end
 
   def handle_event("delete-existing-image", %{"id" => image_id}, socket) do
     post = socket.assigns.post
+    current_user_id = get_current_user_id(socket)
 
-    with {id, ""} <- Integer.parse(image_id),
+    with true <- post.user_id == current_user_id,
+         {id, ""} <- Integer.parse(image_id),
          %{} = image <- Blog.get_post_image(id),
          true <- image.post_id == post.id,
          _ <- Uploads.delete_uploaded_file(image),
@@ -153,6 +194,9 @@ defmodule AppsatuWeb.PostLive do
        |> assign(:preview_image, nil)
        |> put_flash(:info, "Image dihapus")}
     else
+      false ->
+        {:noreply, put_flash(socket, :error, "Anda tidak memiliki akses")}
+
       _ ->
         {:noreply, put_flash(socket, :error, "Image tidak valid")}
     end
@@ -178,10 +222,11 @@ defmodule AppsatuWeb.PostLive do
 
   defp save_post(socket, post_params) do
     params = Map.put_new(post_params, "tag_ids", [])
+    user_id = get_current_user_id(socket)
 
     case socket.assigns.live_action do
       :new ->
-        case Blog.create_post(params) do
+        case Blog.create_post(Map.put(params, "user_id", user_id)) do
           {:ok, post} ->
             case persist_uploads(socket, post) do
               :ok ->
@@ -202,21 +247,28 @@ defmodule AppsatuWeb.PostLive do
       :edit ->
         post = socket.assigns.post
 
-        case Blog.update_post(post, params) do
-          {:ok, updated_post} ->
-            case persist_uploads(socket, updated_post) do
-              :ok ->
-                {:noreply,
-                 socket
-                 |> put_flash(:info, "Post updated successfully")
-                 |> push_navigate(to: ~p"/posts")}
+        if post.user_id == user_id do
+          case Blog.update_post(post, params) do
+            {:ok, updated_post} ->
+              case persist_uploads(socket, updated_post) do
+                :ok ->
+                  {:noreply,
+                   socket
+                   |> put_flash(:info, "Post updated successfully")
+                   |> push_navigate(to: ~p"/posts")}
 
-              {:error, message} ->
-                {:noreply, put_flash(socket, :error, message)}
-            end
+                {:error, message} ->
+                  {:noreply, put_flash(socket, :error, message)}
+              end
 
-          {:error, changeset} ->
-            {:noreply, put_form_assigns(socket, changeset)}
+            {:error, changeset} ->
+              {:noreply, put_form_assigns(socket, changeset)}
+          end
+        else
+          {:noreply,
+           socket
+           |> put_flash(:error, "Anda tidak memiliki akses untuk mengedit post ini")
+           |> push_navigate(to: ~p"/posts")}
         end
     end
   end
@@ -417,6 +469,13 @@ defmodule AppsatuWeb.PostLive do
           "uploaded-file" -> image.url
           file_name -> "/uploads/posts/#{image.post_id}/#{image.role}/#{file_name}"
         end
+    end
+  end
+
+  defp get_current_user_id(socket) do
+    case socket.assigns do
+      %{current_scope: %{user: %{id: user_id}}} -> user_id
+      _ -> nil
     end
   end
 end
