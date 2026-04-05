@@ -24,7 +24,13 @@ defmodule Appsatu.BlogTest do
 
     test "create_post/1 with valid data creates a post" do
       category = category_fixture()
-      valid_attrs = %{title: "some title", body: "some body", published: true, category_id: category.id}
+
+      valid_attrs = %{
+        title: "some title",
+        body: "some body",
+        published: true,
+        category_id: category.id
+      }
 
       assert {:ok, %Post{} = post} = Blog.create_post(valid_attrs)
       assert post.title == "some title"
@@ -40,7 +46,13 @@ defmodule Appsatu.BlogTest do
     test "update_post/2 with valid data updates the post" do
       post = post_fixture()
       category = category_fixture()
-      update_attrs = %{title: "some updated title", body: "some updated body", published: false, category_id: category.id}
+
+      update_attrs = %{
+        title: "some updated title",
+        body: "some updated body",
+        published: false,
+        category_id: category.id
+      }
 
       assert {:ok, %Post{} = post} = Blog.update_post(post, update_attrs)
       assert post.title == "some updated title"

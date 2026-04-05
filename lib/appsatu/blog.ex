@@ -69,7 +69,6 @@ defmodule Appsatu.Blog do
     |> Repo.preload([:category, :tags, :images, :user])
   end
 
-
   @doc """
   Creates a post.
 

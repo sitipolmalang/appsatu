@@ -1,4 +1,3 @@
-
 defmodule Appsatu.Repo.Migrations.CreatePostImages do
   use Ecto.Migration
 

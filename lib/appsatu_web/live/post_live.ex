@@ -202,7 +202,11 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
-  def handle_event("open-image-preview", %{"url" => url, "filename" => filename, "role" => role}, socket) do
+  def handle_event(
+        "open-image-preview",
+        %{"url" => url, "filename" => filename, "role" => role},
+        socket
+      ) do
     {:noreply, assign(socket, :preview_image, %{url: url, filename: filename, role: role})}
   end
 
@@ -355,7 +359,13 @@ defmodule AppsatuWeb.PostLive do
   defp consume_gallery_uploads(socket, post) do
     uploaded =
       consume_uploaded_entries(socket, :gallery_images, fn %{path: path}, entry ->
-        case Uploads.prepare_upload_attrs(path, entry.client_name, entry.client_type, post, "gallery") do
+        case Uploads.prepare_upload_attrs(
+               path,
+               entry.client_name,
+               entry.client_type,
+               post,
+               "gallery"
+             ) do
           {:ok, map} -> {:ok, map}
           {:error, _reason} -> :error
         end

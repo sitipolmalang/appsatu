@@ -146,8 +146,10 @@ defmodule AppsatuWeb.PostController do
 
   defp prepare_uploads(upload_params) do
     with {:ok, cover} <- prepare_optional_upload(Map.get(upload_params, "cover"), "cover"),
-         {:ok, thumbnail} <- prepare_optional_upload(Map.get(upload_params, "thumbnail"), "thumbnail"),
-         {:ok, attachment} <- prepare_optional_upload(Map.get(upload_params, "attachment"), "attachment"),
+         {:ok, thumbnail} <-
+           prepare_optional_upload(Map.get(upload_params, "thumbnail"), "thumbnail"),
+         {:ok, attachment} <-
+           prepare_optional_upload(Map.get(upload_params, "attachment"), "attachment"),
          {:ok, gallery} <- prepare_gallery_uploads(Map.get(upload_params, "gallery", [])) do
       {:ok, Enum.reject([cover, thumbnail, attachment] ++ gallery, &is_nil/1)}
     end
@@ -221,7 +223,8 @@ defmodule AppsatuWeb.PostController do
       :ok ->
         cleanup_replaced_images(existing_single_role_images)
 
-      :error -> {:error, :persist_upload, post}
+      :error ->
+        {:error, :persist_upload, post}
     end
   end
 

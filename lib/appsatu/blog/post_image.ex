@@ -60,7 +60,10 @@ defmodule Appsatu.Blog.PostImage do
   end
 
   defp extract_file_name(%{file_name: file_name}) when is_binary(file_name), do: file_name
-  defp extract_file_name(%Plug.Upload{filename: file_name}) when is_binary(file_name), do: file_name
+
+  defp extract_file_name(%Plug.Upload{filename: file_name}) when is_binary(file_name),
+    do: file_name
+
   defp extract_file_name(file_name) when is_binary(file_name), do: file_name
   defp extract_file_name(_), do: nil
 end

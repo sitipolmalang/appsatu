@@ -7,8 +7,10 @@ defmodule Appsatu.Repo.Migrations.CreateRelationPostsAndTags do
       add(:tag_id, references(:tags, on_delete: :delete_all), null: false)
     end
 
-    create(index(:posts_tags, [:post_id])) # UNTUK MEMPERCEPAT QUERY BERDASARKAN POST
-    create(index(:posts_tags, [:tag_id])) # UNTUK MEMPERCEPAT QUERY BERDASARKAN TAG
+    # UNTUK MEMPERCEPAT QUERY BERDASARKAN POST
+    create(index(:posts_tags, [:post_id]))
+    # UNTUK MEMPERCEPAT QUERY BERDASARKAN TAG
+    create(index(:posts_tags, [:tag_id]))
     create(unique_index(:posts_tags, [:post_id, :tag_id]))
   end
 end

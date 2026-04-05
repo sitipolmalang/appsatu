@@ -3,6 +3,5 @@
     Edit Tag {@tag.id}
     <:subtitle>Use this form to manage tag records in your database.</:subtitle>
   </.header>
-
-  <.tag_form changeset={@changeset} action={~p"/tags/#{@tag}"} return_to={~p"/tags"} />
+   <.tag_form changeset={@changeset} action={~p"/tags/#{@tag}"} return_to={~p"/tags"} />
 </Layouts.app>

@@ -27,6 +27,7 @@ defmodule AppsatuWeb.Router do
       live "/users/register", UserLive.Registration, :new
       live "/users/log-in", UserLive.Login, :new
       live "/users/log-in/:token", UserLive.Confirmation, :new
+
     end
 
     post "/users/log-in", UserSessionController, :create
@@ -41,6 +42,8 @@ defmodule AppsatuWeb.Router do
       live "/posts/new", PostLive, :new
       live "/posts/:id/edit", PostLive, :edit
       live "/posts/:id", PostLive, :show
+      live "/posts", PostLive, :index
+
 
       resources "/categories", CategoryController
       resources "/tags", TagController
@@ -49,15 +52,6 @@ defmodule AppsatuWeb.Router do
       live "/users/settings/confirm-email/:token", UserLive.Settings, :confirm_email
 
       post "/users/update-password", UserSessionController, :update_password
-    end
-  end
-
-  scope "/", AppsatuWeb do
-    pipe_through [:browser, :require_authenticated_user]
-
-    live_session :current_user_authenticated,
-      on_mount: [{AppsatuWeb.UserAuth, :require_authenticated}] do
-      live "/posts", PostLive, :index
     end
   end
 

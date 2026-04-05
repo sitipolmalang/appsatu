@@ -23,7 +23,14 @@ defmodule AppsatuWeb.PostControllerTest do
   describe "create post" do
     test "redirects to show when data is valid", %{conn: conn} do
       category = category_fixture()
-      create_attrs = %{title: "some title", body: "some body", published: true, category_id: category.id}
+
+      create_attrs = %{
+        title: "some title",
+        body: "some body",
+        published: true,
+        category_id: category.id
+      }
+
       conn = post(conn, ~p"/posts", post: create_attrs)
 
       assert %{id: id} = redirected_params(conn)

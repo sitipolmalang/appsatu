@@ -1,38 +1,31 @@
 <.form :let={f} for={@changeset} action={@action} multipart>
   <.input field={f[:title]} type="text" label="Title" />
   <.input field={f[:body]} type="textarea" label="Body" />
-
   <.input
-      field={f[:category_id]}
-      type="select"
-      label="Category"
-      options={Enum.map(@categories || [], &{&1.name, &1.id})}
-    />
-
-  <input type="hidden" name="post[tag_ids][]" value="" />
-
+    field={f[:category_id]}
+    type="select"
+    label="Category"
+    options={Enum.map(@categories || [], &{&1.name, &1.id})}
+  /> <input type="hidden" name="post[tag_ids][]" value="" />
   <.input
-      field={f[:tag_ids]}
-      type="select"
-      label="Tags"
-      options={Enum.map(@tags || [], &{&1.name, &1.id})}
-      multiple
-    />
-
+    field={f[:tag_ids]}
+    type="select"
+    label="Tags"
+    options={Enum.map(@tags || [], &{&1.name, &1.id})}
+    multiple
+  />
   <.input
     field={f[:cover_image]}
     type="file"
     label="Cover image"
     accept="image/jpeg,image/png,image/webp"
   />
-
   <.input
     field={f[:thumbnail_image]}
     type="file"
     label="Thumbnail image"
     accept="image/jpeg,image/png,image/webp"
   />
-
   <.input
     field={f[:gallery_images]}
     type="file"
@@ -40,15 +33,12 @@
     accept="image/jpeg,image/png,image/webp"
     multiple
   />
-
   <.input
     field={f[:attachment]}
     type="file"
     label="Attachment"
     accept="image/jpeg,image/png,image/webp"
-  />
-
-  <.input field={f[:published]} type="checkbox" label="Published" />
+  /> <.input field={f[:published]} type="checkbox" label="Published" />
   <footer>
     <.button variant="primary">Save Post</.button>
     <.button :if={@return_to} href={@return_to}>Cancel</.button>

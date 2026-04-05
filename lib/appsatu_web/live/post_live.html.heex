@@ -7,16 +7,19 @@
             <div class="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <h1 class="text-3xl font-bold tracking-tight">Posts Dashboard</h1>
-                <p class="mt-1 text-base-content/60">Kelola konten dengan upload gambar real-time.</p>
+                
+                <p class="mt-1 text-base-content/60">
+                  Kelola konten dengan upload gambar real-time.
+                </p>
               </div>
-
+              
               <.button navigate={~p"/posts/new"} class="btn btn-primary rounded-full px-6">
                 <.icon name="hero-plus" class="size-5" /> New Post
               </.button>
             </div>
           </div>
         </div>
-
+        
         <div class="overflow-hidden rounded-3xl border border-base-300 bg-base-100 shadow-sm">
           <.table
             id="posts"
@@ -36,14 +39,17 @@
                     <% end %>
                   </div>
                 </div>
-
+                
                 <div>
                   <p class="line-clamp-1 text-sm font-bold tracking-tight">{post.title}</p>
-                  <p class="mt-0.5 line-clamp-2 text-xs leading-relaxed text-base-content/60">{post.body}</p>
+                  
+                  <p class="mt-0.5 line-clamp-2 text-xs leading-relaxed text-base-content/60">
+                    {post.body}
+                  </p>
                 </div>
               </div>
             </:col>
-
+            
             <:col :let={{_id, post}} label="Meta">
               <div class="space-y-2 text-sm">
                 <div>
@@ -53,9 +59,11 @@
                   >
                     {post.category.name}
                   </span>
-                  <span :if={!post.category} class="text-xs text-base-content/50">No category</span>
+                  <span :if={!post.category} class="text-xs text-base-content/50">
+                    No category
+                  </span>
                 </div>
-
+                
                 <div class="flex flex-wrap gap-1.5">
                   <span :if={post.tags == []} class="text-xs text-base-content/50">No tags</span>
                   <span
@@ -67,7 +75,7 @@
                 </div>
               </div>
             </:col>
-
+            
             <:col :let={{_id, post}} label="Status">
               <span class={[
                 "badge rounded-full",
@@ -77,23 +85,23 @@
                 {if post.published, do: "Published", else: "Draft"}
               </span>
             </:col>
-
+            
             <:col :let={{_id, post}} label="Author">
               <span class="text-xs text-base-content/70">
                 <%= if post.user do %>
-                  <%= post.user.email %>
+                  {post.user.email}
                 <% else %>
                   Unknown
                 <% end %>
               </span>
             </:col>
-
+            
             <:action :let={{_id, post}}>
               <%= if @current_user_id && @current_user_id == post.user_id do %>
                 <.link patch={~p"/posts/#{post.id}/edit"} class="link link-primary">Edit</.link>
               <% end %>
             </:action>
-
+            
             <:action :let={{_id, post}}>
               <%= if @current_user_id && @current_user_id == post.user_id do %>
                 <button
@@ -110,7 +118,6 @@
           </.table>
         </div>
       </section>
-
     <% :new -> %>
       <Components.post_form_section
         title="Create Post"
@@ -126,7 +133,6 @@
         selected_tag_count={@selected_tag_count}
         body_length={@body_length}
       />
-
     <% :edit -> %>
       <Components.post_form_section
         title={"Edit Post ##{@post.id}"}
@@ -143,7 +149,6 @@
         selected_tag_count={@selected_tag_count}
         body_length={@body_length}
       />
-
     <% :show -> %>
       <section class="space-y-6">
         <div class="flex items-center justify-between">
@@ -156,16 +161,16 @@
             </.button>
           <% end %>
         </div>
-
+        
         <article class="rounded-3xl border border-base-300 bg-base-100 p-6 shadow-sm sm:p-8">
           <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">{@post.title}</h1>
-
+          
           <div class="mt-4 rounded-2xl bg-base-200/40 p-4 sm:p-5">
             <p class="whitespace-pre-line text-sm leading-relaxed text-base-content/80 sm:text-base">
               {@post.body}
             </p>
           </div>
-
+          
           <div class="mt-6 flex flex-wrap gap-2">
             <span
               :if={@post.category}
@@ -183,9 +188,12 @@
               {tag.name}
             </span>
           </div>
-
+          
           <div class="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div :for={image <- @post.images} class="overflow-hidden rounded-2xl border border-base-300">
+            <div
+              :for={image <- @post.images}
+              class="overflow-hidden rounded-2xl border border-base-300"
+            >
               <button
                 type="button"
                 phx-click="open-image-preview"
@@ -215,6 +223,5 @@
         </article>
       </section>
   <% end %>
-
-  <Components.image_preview_modal preview_image={@preview_image} />
+   <Components.image_preview_modal preview_image={@preview_image} />
 </Layouts.app>

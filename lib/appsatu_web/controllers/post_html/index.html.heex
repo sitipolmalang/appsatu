@@ -2,27 +2,30 @@
   <.header>
     Listing Posts
     <:actions>
-      <.button href={~p"/posts/new"}>
-        <.icon name="hero-plus" /> New Post
-      </.button>
+      <.button href={~p"/posts/new"}><.icon name="hero-plus" /> New Post</.button>
     </:actions>
   </.header>
-
+  
   <.table id="posts" rows={@posts} row_click={&JS.navigate(~p"/posts/#{&1}")}>
     <:col :let={post} label="Title">{post.title}</:col>
+    
     <:col :let={post} label="Body">{post.body}</:col>
+    
     <:col :let={post} label="Published">{post.published}</:col>
+    
     <:col :let={post} label="Category">
-      <%!-- ketika kategori tidak ada, maka tampilan kosong --%>
-      {post.category && post.category.name}
+      <%!-- ketika kategori tidak ada, maka tampilan kosong --%> {post.category &&
+        post.category.name}
     </:col>
+    
     <:col :let={post} label="Tags">
       <%= if post.tags && length(post.tags) > 0 do %>
-        <%= Enum.map(post.tags, & &1.name) |> Enum.join(", ") %>
+        {Enum.map(post.tags, & &1.name) |> Enum.join(", ")}
       <% else %>
         <%!-- kosong --%>
       <% end %>
     </:col>
+    
     <:col :let={post} label="Cover">
       <%= if image = Enum.find(post.images || [], &(&1.role == "cover")) do %>
         <img
@@ -34,19 +37,14 @@
         <span class="text-sm text-base-content/50">No image</span>
       <% end %>
     </:col>
-
-    
-    <%!-- Action buttons --%>
+     <%!-- Action buttons --%>
     <:action :let={post}>
-      <div class="sr-only">
-        <.link navigate={~p"/posts/#{post}"}>Show</.link>
-      </div>
-      <.link navigate={~p"/posts/#{post}/edit"}>Edit</.link>
+      <div class="sr-only"><.link navigate={~p"/posts/#{post}"}>Show</.link></div>
+       <.link navigate={~p"/posts/#{post}/edit"}>Edit</.link>
     </:action>
+    
     <:action :let={post}>
-      <.link href={~p"/posts/#{post}"} method="delete" data-confirm="Are you sure?">
-        Delete
-      </.link>
+      <.link href={~p"/posts/#{post}"} method="delete" data-confirm="Are you sure?">Delete</.link>
     </:action>
   </.table>
 </Layouts.app>
