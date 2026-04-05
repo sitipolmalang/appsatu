@@ -2,10 +2,11 @@ defmodule AppsatuWeb.PostLive.Uploads do
   @moduledoc false
 
   alias Appsatu.Blog.PostImage
+  alias Appsatu.UploadConfig
   alias Appsatu.Uploaders.PostImage, as: PostImageUploader
 
-  @allowed_extensions ~w(.jpg .jpeg .png .webp)
-  @allowed_content_types ~w(image/jpeg image/png image/webp)
+  @allowed_extensions UploadConfig.allowed_extensions()
+  @allowed_content_types UploadConfig.allowed_content_types()
 
   def prepare_upload_attrs(temp_path, client_name, content_type, post, role) do
     normalized_content_type = content_type || "application/octet-stream"
@@ -13,7 +14,9 @@ defmodule AppsatuWeb.PostLive.Uploads do
     with {:ok, filename} <- unique_filename(client_name, normalized_content_type),
          {:ok, binary} <- File.read(temp_path),
          :ok <- validate_binary_content_type(binary, normalized_content_type) do
-      upload = %{filename: filename, binary: binary}
+      compressed = compress_image(binary, role)
+
+      upload = %{filename: filename, binary: compressed.binary, original_size: byte_size(binary)}
 
       {:ok,
        %{
@@ -21,7 +24,7 @@ defmodule AppsatuWeb.PostLive.Uploads do
          role: role,
          filename: upload,
          content_type: normalized_content_type,
-         size: byte_size(binary)
+         size: byte_size(compressed.binary)
        }}
     else
       {:error, :invalid_extension} ->
@@ -33,6 +36,57 @@ defmodule AppsatuWeb.PostLive.Uploads do
       {:error, _reason} ->
         upload_error(:read_failed)
     end
+  end
+
+  defp compress_image(binary, role) do
+    config = image_config_for_role(role)
+
+    image =
+      binary
+      |> Mogrify.open()
+
+    resized = maybe_resize(image, config)
+
+    compressed =
+      resized
+      |> maybe_set_quality(config)
+      |> Mogrify.save()
+
+    %{binary: compressed.binary}
+  rescue
+    _ -> %{binary: binary}
+  end
+
+  defp image_config_for_role("thumbnail") do
+    %{
+      max_width: UploadConfig.thumbnail_max_width(),
+      max_height: UploadConfig.thumbnail_max_height(),
+      quality: UploadConfig.thumbnail_quality()
+    }
+  end
+
+  defp image_config_for_role(_role) do
+    %{
+      max_width: UploadConfig.max_image_width(),
+      max_height: UploadConfig.max_image_height(),
+      quality: UploadConfig.image_quality()
+    }
+  end
+
+  defp maybe_resize(image, %{max_width: max_w, max_height: max_h}) do
+    w = image.width || 0
+    h = image.height || 0
+
+    if w > max_w or h > max_h do
+      scale = min(max_w / w, max_h / h)
+      Mogrify.resize(image, "#{Float.round(scale * 100)}%")
+    else
+      image
+    end
+  end
+
+  defp maybe_set_quality(image, %{quality: quality}) do
+    Mogrify.custom(image, "quality", "#{quality}")
   end
 
   def prepare_upload_from_plug(%Plug.Upload{} = upload, role) do

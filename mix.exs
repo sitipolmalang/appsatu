@@ -71,6 +71,7 @@ defmodule Appsatu.MixProject do
       {:ex_aws, "~> 2.6"},
       {:ex_aws_s3, "~> 2.5"},
       {:pbkdf2_elixir, "~> 2.0"},
+      {:mogrify, "~> 0.9"}
     ]
   end
 

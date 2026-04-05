@@ -13,6 +13,8 @@ defmodule Appsatu.Blog.PostImage do
     field :filename, PostImageUploader.Type
     field :content_type, :string
     field :size, :integer
+    field :alt_text, :string
+    field :caption, :string
 
     belongs_to :post, Appsatu.Blog.Post
 
@@ -21,7 +23,7 @@ defmodule Appsatu.Blog.PostImage do
 
   def changeset(post_image, attrs) do
     post_image
-    |> cast(attrs, [:post_id, :role, :url, :content_type, :size])
+    |> cast(attrs, [:post_id, :role, :url, :content_type, :size, :alt_text, :caption])
     |> cast_attachments(attrs, [:filename])
     |> maybe_put_url()
     |> validate_required([:post_id, :role, :url, :filename, :content_type, :size])

@@ -1,13 +1,16 @@
 defmodule AppsatuWeb.PostLive do
   use AppsatuWeb, :live_view
 
+  require Logger
+
   alias Appsatu.Blog
   alias Appsatu.Blog.Post
+  alias Appsatu.UploadConfig
   alias AppsatuWeb.PostLive.Components
   alias AppsatuWeb.PostLive.Uploads
 
-  @allowed_upload_types ~w(.jpg .jpeg .png .webp)
-  @max_upload_size 2 * 1024 * 1024
+  @allowed_upload_types UploadConfig.allowed_extensions()
+  @max_upload_size UploadConfig.max_file_size()
   @upload_keys [:cover_image, :thumbnail_image, :attachment, :gallery_images]
 
   @impl true
@@ -41,7 +44,7 @@ defmodule AppsatuWeb.PostLive do
       )
       |> allow_upload(:gallery_images,
         accept: @allowed_upload_types,
-        max_entries: 3,
+        max_entries: UploadConfig.max_gallery_entries(),
         max_file_size: @max_upload_size,
         auto_upload: true
       )
@@ -288,7 +291,13 @@ defmodule AppsatuWeb.PostLive do
       _ -> {:error, "Upload #{role} tidak valid"}
     end
   rescue
-    _ -> {:error, "Gagal memproses upload #{role}"}
+    e in [File.Error, Ecto.Query.CompileError] ->
+      Logger.error("Upload failed for #{role}: #{inspect(e, pretty: true)}")
+      {:error, "Gagal memproses upload #{role}"}
+
+    e ->
+      Logger.error("Unexpected error during upload for #{role}: #{inspect(e, pretty: true)}")
+      {:error, "Gagal memproses upload #{role}"}
   end
 
   defp consume_gallery_uploads(socket, post) do
@@ -302,7 +311,13 @@ defmodule AppsatuWeb.PostLive do
 
     {:ok, uploaded}
   rescue
-    _ -> {:error, "Gagal memproses upload gallery"}
+    e in [File.Error, Ecto.Query.CompileError] ->
+      Logger.error("Upload failed for gallery: #{inspect(e, pretty: true)}")
+      {:error, "Gagal memproses upload gallery"}
+
+    e ->
+      Logger.error("Unexpected error during gallery upload: #{inspect(e, pretty: true)}")
+      {:error, "Gagal memproses upload gallery"}
   end
 
   defp replaceable_images(post, uploads) do
