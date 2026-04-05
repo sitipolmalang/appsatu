@@ -1,21 +1,32 @@
 defmodule AppsatuWeb.PostLive.Components do
-  @moduledoc false
+  @moduledoc """
+  Module ini berisi komponen UI reusable untuk PostLive.
+  Semua komponen menggunakan HEEx template dan Tailwind CSS.
+  """
   use AppsatuWeb, :html
 
-  attr :title, :string, required: true
-  attr :subtitle, :string, required: true
-  attr :form, Phoenix.HTML.Form, required: true
-  attr :categories, :list, required: true
-  attr :tags, :list, required: true
-  attr :uploads, :map, required: true
-  attr :action, :atom, required: true
-  attr :post, :map, default: nil
-  attr :preview_image, :map, default: nil
-  attr :submit_disabled, :boolean, default: false
-  attr :selected_tag_ids, :list, default: []
-  attr :selected_tag_count, :integer, default: 0
-  attr :body_length, :integer, default: 0
+  # ============================================================
+  # ATTRIBUTES - Definisi parameter yang diterima komponen
+  # ============================================================
 
+  # --- post_form_section attributes ---
+  attr :title, :string, required: true      # Judul form (Create Post / Edit Post)
+  attr :subtitle, :string, required: true   # Subtitle/deskripsi form
+  attr :form, Phoenix.HTML.Form, required: true  # Form struct dari to_form()
+  attr :categories, :list, required: true   # List category untuk dropdown
+  attr :tags, :list, required: true         # List tags untuk checkbox
+  attr :uploads, :map, required: true       # Map upload configs (cover, thumbnail, etc)
+  attr :action, :atom, required: true      # :new atau :edit
+  attr :post, :map, default: nil           # Post struct (untuk edit mode)
+  attr :preview_image, :map, default: nil  # Image yang sedang di-preview
+  attr :submit_disabled, :boolean, default: false  # Disable submit button
+  attr :selected_tag_ids, :list, default: []      # Tag IDs yang dipilih
+  attr :selected_tag_count, :integer, default: 0   # Jumlah tag dipilih
+  attr :body_length, :integer, default: 0          # Panjang karakter body
+
+  # --- Main Form Component ---
+  # Renders form lengkap untuk create/edit post
+  # Includes: title, category, body, tags, upload fields, existing media
   def post_form_section(assigns) do
     ~H"""
     <section class="space-y-6">
@@ -193,8 +204,16 @@ defmodule AppsatuWeb.PostLive.Components do
     """
   end
 
-  attr :preview_image, :map, default: nil
+  # ============================================================
+  # IMAGE PREVIEW MODAL
+  # Muncul saat user klik gambar existing untuk preview
+  # ============================================================
 
+  attr :preview_image, :map, default: nil  # Image yang di-preview (map dengan :url, :filename, :role)
+
+  # Renders modal overlay dengan gambar besar
+  # Juga menampilkan filename dan role gambar
+  # Close dengan klik tombol X, klik luar modal, atau tekan Escape
   def image_preview_modal(assigns) do
     ~H"""
     <%= if @preview_image do %>
@@ -237,10 +256,17 @@ defmodule AppsatuWeb.PostLive.Components do
     """
   end
 
-  attr :upload, :map, required: true
-  attr :label, :string, required: true
-  attr :target, :string, required: true
+  # ============================================================
+  # UPLOAD FIELD COMPONENT
+  # Dropzone untuk upload file (cover, thumbnail, attachment, gallery)
+  # ============================================================
 
+  attr :upload, :map, required: true      # Upload struct dari Phoenix LiveView
+  attr :label, :string, required: true    # Label tampilan (e.g. "Cover Image")
+  attr :target, :string, required: true   # Target key (e.g. "cover_image")
+
+  # Renders drag-and-drop zone dengan progress bar
+  # Menggunakan live_file_input untuk Phoenix upload
   defp upload_field(assigns) do
     ~H"""
     <div class="space-y-2 rounded-xl border border-base-300 p-3">
@@ -302,18 +328,25 @@ defmodule AppsatuWeb.PostLive.Components do
     """
   end
 
-  defp upload_error_to_text(:too_large), do: "Ukuran file terlalu besar (maks 5MB)"
+  # ============================================================
+  # HELPER FUNCTIONS
+  # ============================================================
 
+  # --- Convert upload error atom ke text Indonesia ---
+  defp upload_error_to_text(:too_large), do: "Ukuran file terlalu besar (maks 5MB)"
   defp upload_error_to_text(:not_accepted),
     do: "Tipe file tidak didukung. Gunakan JPG, JPEG, PNG, atau WEBP"
-
   defp upload_error_to_text(:too_many_files), do: "Jumlah file melebihi batas"
   defp upload_error_to_text(_), do: "Upload gagal"
 
+  # --- Ambil filename dari image struct ---
   defp filename_label(%{file_name: file_name}) when is_binary(file_name), do: file_name
   defp filename_label(file_name) when is_binary(file_name), do: file_name
   defp filename_label(_), do: "uploaded-file"
 
+  # --- Bangun URL untuk image ---
+  # Jika image punya :url field, gunakan itu
+  # Jika tidak, bangun path dari post_id/role/filename
   defp image_url(image) do
     case Map.get(image, :url) do
       url when is_binary(url) and url != "" ->

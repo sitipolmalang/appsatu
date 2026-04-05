@@ -3,16 +3,29 @@ defmodule AppsatuWeb.PostLive do
 
   require Logger
 
+  # --- Context Aliases ---
+  # Memanggil module Blog untuk akses database post, category, tag
   alias Appsatu.Blog
   alias Appsatu.Blog.Post
   alias Appsatu.UploadConfig
+
+  # --- Component & Upload Aliases ---
+  # Memanggil components.ex - berisi komponen UI (sidebar, header, form dll)
   alias AppsatuWeb.PostLive.Components
+  # Memanggil uploads.ex - berisi helper untuk handle file upload
   alias AppsatuWeb.PostLive.Uploads
 
+  # --- Configuration ---
+  # Tipe file yang diizinkan untuk upload
   @allowed_upload_types UploadConfig.allowed_extensions()
+  # Ukuran maksimal file upload
   @max_upload_size UploadConfig.max_file_size()
+  # Key untuk berbagai jenis upload
   @upload_keys [:cover_image, :thumbnail_image, :attachment, :gallery_images]
 
+  # ============================================================
+  # MOUNT - Dipanggil saat LiveView pertama kali di-load
+  # ============================================================
   @impl true
   def mount(_params, _session, socket) do
     socket =
@@ -28,6 +41,10 @@ defmodule AppsatuWeb.PostLive do
     {:ok, socket}
   end
 
+  # ============================================================
+  # UPLOADS - Konfigurasi upload file ke LiveView
+  # Dipanggil di mount() untuk enable upload capability
+  # ============================================================
   defp maybe_assign_uploads(socket) do
     if socket.assigns[:uploads] do
       socket
@@ -60,6 +77,10 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # ============================================================
+  # HANDLE_PARAMS - Handle URL params & live_action (index/new/edit/show)
+  # Dipanggil saat URL berubah atau live_action di-trigger
+  # ============================================================
   @impl true
   def handle_params(params, _uri, socket) do
     current_user_id = get_current_user_id(socket)
@@ -124,6 +145,9 @@ defmodule AppsatuWeb.PostLive do
       end
   end
 
+  # ============================================================
+  # HANDLE_EVENT - Handle events dari browser (form, clicks, dll)
+  # ============================================================
   @impl true
   def handle_event("validate", %{"post" => post_params}, socket) do
     post = socket.assigns.post || %Post{}
@@ -137,6 +161,7 @@ defmodule AppsatuWeb.PostLive do
     {:noreply, put_form_assigns(socket, changeset)}
   end
 
+  # --- Simpan post (create/update) ---
   def handle_event("save", %{"post" => post_params}, socket) do
     cond do
       any_uploads_in_progress?(socket) ->
@@ -150,6 +175,7 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # --- Hapus post ---
   def handle_event("delete", %{"id" => id}, socket) do
     current_user_id = get_current_user_id(socket)
     post = Blog.get_post!(id)
@@ -166,6 +192,7 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # --- Hapus gambar existing ---
   def handle_event("delete-existing-image", %{"id" => image_id}, socket) do
     post = socket.assigns.post
     current_user_id = get_current_user_id(socket)
@@ -190,6 +217,7 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # --- Preview image ---
   def handle_event(
         "open-image-preview",
         %{"url" => url, "filename" => filename, "role" => role},
@@ -198,10 +226,12 @@ defmodule AppsatuWeb.PostLive do
     {:noreply, assign(socket, :preview_image, %{url: url, filename: filename, role: role})}
   end
 
+  # --- Close preview ---
   def handle_event("close-image-preview", _params, socket) do
     {:noreply, assign(socket, :preview_image, nil)}
   end
 
+  # --- Cancel upload ---
   def handle_event("cancel-upload", %{"ref" => ref, "target" => target}, socket) do
     target_atom = upload_target(target)
 
@@ -212,6 +242,10 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # ============================================================
+  # SAVE_POST - Logic untuk create/update post
+  # Termasuk authorization check sebelum update
+  # ============================================================
   defp save_post(socket, post_params) do
     params = Map.put_new(post_params, "tag_ids", [])
     user_id = get_current_user_id(socket)
@@ -265,6 +299,11 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # ============================================================
+  # UPLOAD HELPERS - Pengecekan dan proses upload
+  # ============================================================
+
+  # --- Cek apakah ada upload yang masih berjalan ---
   defp any_uploads_in_progress?(socket) do
     @upload_keys
     |> Enum.any?(fn key ->
@@ -273,6 +312,7 @@ defmodule AppsatuWeb.PostLive do
     end)
   end
 
+  # --- Cek apakah ada upload yang error ---
   defp any_upload_errors?(socket) do
     @upload_keys
     |> Enum.any?(fn key ->
@@ -281,6 +321,10 @@ defmodule AppsatuWeb.PostLive do
     end)
   end
 
+  # ============================================================
+  # PERSIST UPLOADS - Simpan file upload ke database
+  # Setelah post berhasil dibuat/diupdate
+  # ============================================================
   defp persist_uploads(socket, post) do
     with {:ok, cover} <- consume_role_upload(socket, :cover_image, "cover", post),
          {:ok, thumbnail} <- consume_role_upload(socket, :thumbnail_image, "thumbnail", post),
@@ -312,6 +356,7 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # --- Ambil error message pertama dari changeset ---
   defp first_changeset_error(changeset) do
     changeset
     |> Ecto.Changeset.traverse_errors(fn {msg, _opts} -> msg end)
@@ -320,6 +365,8 @@ defmodule AppsatuWeb.PostLive do
     end)
   end
 
+  # --- Consume single role upload (cover/thumbnail/attachment) ---
+  # Memanggil Uploads.prepare_upload_attrs() untuk proses file
   defp consume_role_upload(socket, upload_key, role, post) do
     uploaded =
       consume_uploaded_entries(socket, upload_key, fn %{path: path}, entry ->
@@ -344,6 +391,7 @@ defmodule AppsatuWeb.PostLive do
       {:error, "Gagal memproses upload #{role}"}
   end
 
+  # --- Consume gallery uploads (multiple images) ---
   defp consume_gallery_uploads(socket, post) do
     uploaded =
       consume_uploaded_entries(socket, :gallery_images, fn %{path: path}, entry ->
@@ -370,6 +418,11 @@ defmodule AppsatuWeb.PostLive do
       {:error, "Gagal memproses upload gallery"}
   end
 
+  # ============================================================
+  # IMAGE MANAGEMENT - Replace & cleanup
+  # ============================================================
+
+  # --- Cari gambar yang bisa di-replace (jika upload baru ada ---
   defp replaceable_images(post, uploads) do
     roles_to_replace =
       uploads
@@ -382,6 +435,7 @@ defmodule AppsatuWeb.PostLive do
     Enum.filter(existing_images, &(&1.role in roles_to_replace))
   end
 
+  # --- Hapus gambar lama yang di-replace ---
   defp cleanup_replaced_images(images) do
     ids = Enum.map(images, & &1.id)
     _ = Blog.delete_post_images_by_ids(ids)
@@ -393,6 +447,7 @@ defmodule AppsatuWeb.PostLive do
     :ok
   end
 
+  # --- Hapus post beserta semua gambarnya ---
   defp delete_post_with_uploads(post) do
     existing_images = Blog.list_post_images(post.id)
 
@@ -405,6 +460,11 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # ============================================================
+  # FORM HELPERS - Untuk render form di template
+  # ============================================================
+
+  # --- Cek apakah form bisa di-submit ---
   defp submit_disabled?(uploads) do
     @upload_keys
     |> Enum.any?(fn key ->
@@ -413,6 +473,7 @@ defmodule AppsatuWeb.PostLive do
     end)
   end
 
+  # --- Mapping string target ke atom key ---
   defp upload_target(target) do
     case target do
       "cover_image" -> :cover_image
@@ -423,6 +484,7 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # --- Cek apakah ada error di upload ---
   defp upload_has_errors?(upload) do
     upload_errors(upload) != [] ||
       Enum.any?(upload.entries, fn entry ->
@@ -430,6 +492,11 @@ defmodule AppsatuWeb.PostLive do
       end)
   end
 
+  # ============================================================
+  # FORM & UTILITY HELPERS
+  # ============================================================
+
+  # --- Siapkan assigns untuk form rendering ---
   defp put_form_assigns(socket, changeset) do
     form = to_form(changeset)
     selected_tag_ids = selected_tag_ids(form)
@@ -441,22 +508,30 @@ defmodule AppsatuWeb.PostLive do
     |> assign(:body_length, body_length(form))
   end
 
+  # --- Ambil ID tags yang dipilih dari form ---
   defp selected_tag_ids(form) do
     form[:tag_ids].value
     |> List.wrap()
     |> Enum.map(&to_string/1)
   end
 
+  # --- Hitung panjang body text ---
   defp body_length(form) do
     form[:body].value
     |> to_string()
     |> String.length()
   end
 
+  # ============================================================
+  # IMAGE HELPERS
+  # ============================================================
+
+  # --- Ambil filename dari image struct ---
   defp filename_label(%{file_name: file_name}) when is_binary(file_name), do: file_name
   defp filename_label(file_name) when is_binary(file_name), do: file_name
   defp filename_label(_), do: "uploaded-file"
 
+  # --- Bangun URL untuk image ---
   defp image_url(image) do
     case Map.get(image, :url) do
       url when is_binary(url) and url != "" ->
@@ -470,6 +545,11 @@ defmodule AppsatuWeb.PostLive do
     end
   end
 
+  # ============================================================
+  # USER HELPERS - Ambil user ID dari socket
+  # ============================================================
+
+  # Ambil user_id dari current_scope (di-set oleh UserAuth plug)
   defp get_current_user_id(socket) do
     case socket.assigns do
       %{current_scope: %{user: %{id: user_id}}} -> user_id
