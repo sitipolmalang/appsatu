@@ -39,7 +39,7 @@ defmodule AppsatuWeb.PostLive.Uploads do
   end
 
   defp compress_image(binary, role) do
-    config = image_config_for_role(role)
+    config = UploadConfig.image_config(role)
 
     image =
       binary
@@ -55,22 +55,6 @@ defmodule AppsatuWeb.PostLive.Uploads do
     %{binary: compressed.binary}
   rescue
     _ -> %{binary: binary}
-  end
-
-  defp image_config_for_role("thumbnail") do
-    %{
-      max_width: UploadConfig.thumbnail_max_width(),
-      max_height: UploadConfig.thumbnail_max_height(),
-      quality: UploadConfig.thumbnail_quality()
-    }
-  end
-
-  defp image_config_for_role(_role) do
-    %{
-      max_width: UploadConfig.max_image_width(),
-      max_height: UploadConfig.max_image_height(),
-      quality: UploadConfig.image_quality()
-    }
   end
 
   defp maybe_resize(image, %{max_width: max_w, max_height: max_h}) do

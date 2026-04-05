@@ -11,12 +11,16 @@ defmodule Appsatu.UploadConfig do
 
   def max_gallery_entries, do: 3
 
-  def image_quality, do: 85
+  def default_quality, do: 85
+  def default_max_width, do: 1920
+  def default_max_height, do: 1080
 
-  def max_image_width, do: 1920
-  def max_image_height, do: 1080
-
-  def thumbnail_quality, do: 80
-  def thumbnail_max_width, do: 400
-  def thumbnail_max_height, do: 400
+  @doc """
+  Returns image processing config for a specific role.
+  """
+  def image_config("cover"), do: %{max_width: 1920, max_height: 1080, quality: 85}
+  def image_config("thumbnail"), do: %{max_width: 400, max_height: 400, quality: 80}
+  def image_config("gallery"), do: %{max_width: 1200, max_height: 800, quality: 80}
+  def image_config("attachment"), do: %{max_width: 1920, max_height: 1080, quality: 85}
+  def image_config(_role), do: %{max_width: 1920, max_height: 1080, quality: 85}
 end
