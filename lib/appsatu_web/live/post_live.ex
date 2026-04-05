@@ -15,23 +15,17 @@ defmodule AppsatuWeb.PostLive do
 
   @impl true
   def mount(_params, _session, socket) do
-    try do
-      socket =
-        socket
-        |> assign(:categories, Blog.list_categories())
-        |> assign(:tags, Blog.list_tags())
-        |> assign(:post, nil)
-        |> assign(:preview_image, nil)
-        |> assign(:page_title, "Posts")
-        |> stream(:posts, [], reset: true)
-        |> maybe_assign_uploads()
+    socket =
+      socket
+      |> assign(:categories, Blog.list_categories())
+      |> assign(:tags, Blog.list_tags())
+      |> assign(:post, nil)
+      |> assign(:preview_image, nil)
+      |> assign(:page_title, "Posts")
+      |> stream(:posts, [], reset: true)
+      |> maybe_assign_uploads()
 
-      {:ok, socket}
-    rescue
-      e ->
-        Logger.error("mount error: #{inspect(e, pretty: true)}")
-        {:ok, socket}
-    end
+    {:ok, socket}
   end
 
   defp maybe_assign_uploads(socket) do
@@ -68,10 +62,9 @@ defmodule AppsatuWeb.PostLive do
 
   @impl true
   def handle_params(params, _uri, socket) do
-    try do
-      current_user_id = get_current_user_id(socket)
+    current_user_id = get_current_user_id(socket)
 
-      case socket.assigns.live_action do
+    case socket.assigns.live_action do
         action when action in [nil, :index] ->
           posts = Blog.list_posts()
 
@@ -122,18 +115,13 @@ defmodule AppsatuWeb.PostLive do
         :show ->
           post = Blog.get_post!(params["id"])
 
-          {:noreply,
-           socket
-           |> assign(:page_title, "Post Detail")
-           |> assign(:preview_image, nil)
-           |> assign(:post, post)
-           |> assign(:current_user_id, current_user_id)}
+           {:noreply,
+            socket
+            |> assign(:page_title, "Post Detail")
+            |> assign(:preview_image, nil)
+            |> assign(:post, post)
+            |> assign(:current_user_id, current_user_id)}
       end
-    rescue
-      e ->
-        Logger.error("handle_params error: #{inspect(e, pretty: true)}")
-        {:noreply, socket}
-    end
   end
 
   @impl true
