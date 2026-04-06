@@ -30,13 +30,13 @@ defmodule AppsatuWeb.PostLive do
   def mount(_params, _session, socket) do
     socket =
       socket
-      |> assign(:categories, Blog.list_categories())
-      |> assign(:tags, Blog.list_tags())
-      |> assign(:post, nil)
-      |> assign(:preview_image, nil)
-      |> assign(:page_title, "Posts")
-      |> stream(:posts, [], reset: true)
-      |> maybe_assign_uploads()
+      |> assign(:categories, Blog.list_categories()) # Ambil list kategori untuk dropdown filter
+      |> assign(:tags, Blog.list_tags()) # Ambil list tag untuk form post
+      |> assign(:post, nil) # Post yang sedang diedit/ditampilkan (nil untuk index)
+      |> assign(:preview_image, nil) # Data untuk image preview modal
+      |> assign(:page_title, "Posts") # Judul halaman default
+      |> stream(:posts, [], reset: true) # Stream untuk list post, diisi saat handle_params dipanggil
+      |> maybe_assign_uploads() # Setup upload configuration jika belum ada
 
     {:ok, socket}
   end
